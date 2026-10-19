@@ -1,0 +1,5 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Crear ubicación · ICChocolate{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">SOLO DUEÑO</span><h1>Crear ubicación</h1><p>Agrega un contenedor o zona para organizar las existencias.</p></div></div><div class="panel form-panel narrow"><form method="post" class="form-stack">{% csrf_token %}{% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</div>{% endfor %}<button class="button button-dark" type="submit">Crear ubicación →</button></form></div>
+{% endblock %}

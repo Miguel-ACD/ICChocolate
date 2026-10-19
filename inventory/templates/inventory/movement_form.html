@@ -1,0 +1,6 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Nuevo movimiento · ICChocolate{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">REGISTRO MANUAL</span><h1>Nuevo movimiento</h1><p>Completa la operación y revísala antes de confirmar.</p></div></div>
+<div class="form-layout"><div class="panel form-panel"><form method="post" class="form-stack">{% csrf_token %}{% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</div>{% endfor %}<button class="button button-dark" type="submit">Revisar operación →</button></form></div><aside class="tip-card"><span class="eyebrow">ANTES DE CONFIRMAR</span><h2>Movimientos claros, inventario confiable.</h2><p>Las compras agregan unidades. Las ventas, consumos y mermas las descuentan. Un traslado mueve la misma cantidad entre ubicaciones.</p><p>El sistema impide que una salida deje existencias negativas.</p></aside></div>
+{% endblock %}

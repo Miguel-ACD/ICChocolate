@@ -1,0 +1,40 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}ICChocolate{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'inventory/style.css' %}">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="{% url 'dashboard' %}"><span class="brand-mark">◆</span><span>IC<span class="brand-em">Chocolate</span><small>INVENTARIO · DEMO</small></span></a>
+      <div class="nav-label">ESPACIO DE TRABAJO</div>
+      <nav aria-label="Navegación principal">
+        <a href="{% url 'dashboard' %}" class="nav-link">◫ <span>Resumen</span></a>
+        <a href="{% url 'inventory' %}" class="nav-link">▦ <span>Inventario</span></a>
+        <a href="{% url 'movement_new' %}" class="nav-link">↗ <span>Nuevo movimiento</span></a>
+        <a href="{% url 'movement_history' %}" class="nav-link">◷ <span>Historial</span></a>
+      </nav>
+      {% if owner %}
+      <div class="nav-label">ADMINISTRACIÓN</div>
+      <nav aria-label="Administración">
+        <a href="{% url 'product_new' %}" class="nav-link">＋ <span>Crear producto</span></a>
+        <a href="{% url 'location_new' %}" class="nav-link">⌖ <span>Crear ubicación</span></a>
+      </nav>
+      {% endif %}
+      <div class="sidebar-bottom">
+        <div class="user-line"><span class="avatar">{{ request.user.username|slice:':1'|upper }}</span><span><strong>{{ request.user.username }}</strong><small>{% if owner %}Dueño{% else %}Empleado{% endif %}</small></span></div>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="logout" type="submit">Cerrar sesión ↗</button></form>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><span>World Chocolate Day <span class="topbar-dot">◆</span> Inventario</span><span class="demo-pill">● DEMO LOCAL</span></header>
+      {% if messages %}<div class="messages" role="status">{% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>

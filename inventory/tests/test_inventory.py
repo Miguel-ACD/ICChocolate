@@ -1,0 +1,153 @@
+import uuid
+from concurrent.futures import ThreadPoolExecutor
+from django.contrib.auth import get_user_model
+from django.db import connection, connections, close_old_connections
+from django.test import TestCase, TransactionTestCase
+from django.urls import reverse
+from inventory.models import Location, Movement, Presentation, Product, Stock, UserProfile
+from inventory.services import InventoryError, register_movement
+
+
+class InventoryFlowTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        user_model = get_user_model()
+        cls.owner = user_model.objects.create_user(username="owner@example.test", password="safe-demo-pass-123")
+        cls.employee = user_model.objects.create_user(username="employee@example.test", password="safe-demo-pass-456")
+        UserProfile.objects.create(user=cls.owner, role=UserProfile.Role.OWNER)
+        UserProfile.objects.create(user=cls.employee, role=UserProfile.Role.EMPLOYEE)
+        cls.product = Product.objects.create(code="BAR", name="Chocolate en barra")
+        cls.presentation = Presentation.objects.create(product=cls.product, code="BAR-100", name="Barra", unit_description="Una barra de 100 g", content_value=100, content_unit="G")
+        cls.warehouse = Location.objects.create(code="WH", name="Almacén")
+        cls.display = Location.objects.create(code="DIS", name="Display")
+
+    def move(self, type_="COMPRA", quantity=5, user=None, **kwargs):
+        return register_movement(user=user or self.employee, type_=type_, presentation_id=self.presentation.pk,
+                                 quantity=quantity, source_id=self.warehouse.pk, **kwargs)
+
+    def quantity(self, location):
+        return Stock.objects.get(presentation=self.presentation, location=location).quantity
+
+    def test_purchase_sale_transfer_and_history(self):
+        self.move(quantity=8)
+        self.move(type_="VENTA", quantity=2)
+        movement = self.move(type_="TRASLADO", quantity=3, destination_id=self.display.pk)
+        self.assertEqual(self.quantity(self.warehouse), 3)
+        self.assertEqual(self.quantity(self.display), 3)
+        self.assertEqual(sum(line.delta for line in movement.lines.all()), 0)
+        self.assertEqual(Movement.objects.count(), 3)
+
+    def test_insufficient_sale_rolls_back_everything(self):
+        self.move(quantity=2)
+        with self.assertRaisesMessage(InventoryError, "Stock insuficiente"):
+            self.move(type_="VENTA", quantity=3)
+        self.assertEqual(self.quantity(self.warehouse), 2)
+        self.assertEqual(Movement.objects.count(), 1)
+
+    def test_transfer_with_insufficient_stock_is_atomic(self):
+        self.move(quantity=2)
+        with self.assertRaises(InventoryError):
+            self.move(type_="TRASLADO", quantity=3, destination_id=self.display.pk)
+        self.assertEqual(self.quantity(self.warehouse), 2)
+        self.assertFalse(Stock.objects.filter(presentation=self.presentation, location=self.display).exists())
+        self.assertEqual(Movement.objects.count(), 1)
+
+    def test_idempotency_key_applies_only_once(self):
+        key = uuid.uuid4()
+        first = self.move(quantity=4, idempotency_key=key)
+        second = self.move(quantity=4, idempotency_key=key)
+        self.assertEqual(first.pk, second.pk)
+        self.assertEqual(self.quantity(self.warehouse), 4)
+        with self.assertRaises(InventoryError):
+            self.move(quantity=5, idempotency_key=key)
+
+    def test_invalid_or_incomplete_operations(self):
+        for kwargs in [
+            {"quantity": 0}, {"quantity": -1},
+            {"type_": "MERMA", "quantity": 1},
+            {"type_": "TRASLADO", "quantity": 1, "destination_id": self.warehouse.pk},
+            {"type_": "COMPRA", "quantity": 1, "destination_id": self.display.pk},
+        ]:
+            with self.subTest(kwargs=kwargs), self.assertRaises(InventoryError):
+                self.move(**kwargs)
+        self.assertEqual(Movement.objects.count(), 0)
+
+    def test_owner_only_initial_and_product_creation(self):
+        with self.assertRaises(InventoryError):
+            self.move(type_="INICIAL", quantity=2)
+        self.move(type_="INICIAL", quantity=2, user=self.owner)
+        self.client.force_login(self.employee)
+        response = self.client.post(reverse("product_new"), {
+            "code": "P2", "name": "Otro", "presentation_code": "P2-1",
+            "presentation_name": "Unidad", "unit_description": "Una unidad", "content_value": "1", "content_unit": "PIEZA"})
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(Product.objects.filter(code="P2").exists())
+        self.client.force_login(self.owner)
+        response = self.client.post(reverse("product_new"), {
+            "code": "P2", "name": "Otro", "presentation_code": "P2-1",
+            "presentation_name": "Unidad", "unit_description": "Una unidad", "content_value": "1", "content_unit": "PIEZA"})
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Product.objects.filter(code="P2").exists())
+
+    def test_web_requires_review_and_rejects_incomplete_form(self):
+        self.client.force_login(self.employee)
+        incomplete = self.client.post(reverse("movement_new"), {"type": "VENTA", "quantity": "1"})
+        self.assertEqual(incomplete.status_code, 200)
+        self.assertEqual(Movement.objects.count(), 0)
+        valid = self.client.post(reverse("movement_new"), {
+            "type": "COMPRA", "presentation": self.presentation.pk,
+            "quantity": "3", "source": self.warehouse.pk})
+        self.assertRedirects(valid, reverse("movement_confirm"))
+        self.assertEqual(Movement.objects.count(), 0)
+        confirmed = self.client.post(reverse("movement_confirm"))
+        self.assertRedirects(confirmed, reverse("movement_history"))
+        self.assertEqual(self.quantity(self.warehouse), 3)
+
+    def test_login_and_persistence_across_requests(self):
+        response = self.client.post(reverse("login"), {"username": "employee@example.test", "password": "safe-demo-pass-456"})
+        self.assertRedirects(response, reverse("dashboard"))
+        self.move(quantity=6)
+        response = self.client.get(reverse("inventory"))
+        self.assertContains(response, "6")
+        self.assertEqual(self.quantity(self.warehouse), 6)
+
+    def test_user_without_profile_cannot_log_in(self):
+        get_user_model().objects.create_user(username="unassigned@example.test", password="safe-demo-pass-789")
+        response = self.client.post(reverse("login"), {"username": "unassigned@example.test", "password": "safe-demo-pass-789"})
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_employee_cannot_create_location(self):
+        self.client.force_login(self.employee)
+        response = self.client.post(reverse("location_new"), {"code": "KITCHEN", "name": "Cocina"})
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(Location.objects.filter(code="KITCHEN").exists())
+
+
+class ConcurrentSaleTests(TransactionTestCase):
+    def test_two_sales_cannot_spend_the_same_unit(self):
+        if connection.vendor != "postgresql":
+            self.skipTest("Esta comprobación de bloqueo se ejecuta con PostgreSQL.")
+        user = get_user_model().objects.create_user(username="concurrent@example.test", password="safe-demo-pass-123")
+        UserProfile.objects.create(user=user, role=UserProfile.Role.EMPLOYEE)
+        product = Product.objects.create(code="CONCURRENT", name="Producto de prueba")
+        presentation = Presentation.objects.create(product=product, code="CONCURRENT-1", name="Unidad", unit_description="Una unidad", content_value=1, content_unit="PIEZA")
+        location = Location.objects.create(code="TEST", name="Prueba")
+        register_movement(user=user, type_="COMPRA", presentation_id=presentation.pk, quantity=1, source_id=location.pk)
+
+        def sell():
+            close_old_connections()
+            try:
+                register_movement(user=user, type_="VENTA", presentation_id=presentation.pk,
+                                  quantity=1, source_id=location.pk)
+                return "ok"
+            except InventoryError:
+                return "rejected"
+            finally:
+                connections.close_all()
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            outcomes = list(pool.map(lambda _: sell(), range(2)))
+        self.assertCountEqual(outcomes, ["ok", "rejected"])
+        self.assertEqual(Stock.objects.get(presentation=presentation, location=location).quantity, 0)
+        self.assertEqual(Movement.objects.filter(type="VENTA").count(), 1)
