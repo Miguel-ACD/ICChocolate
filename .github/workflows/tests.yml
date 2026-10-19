@@ -1,0 +1,27 @@
+name: Pruebas de inventario
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - name: Preparar configuración temporal de CI
+        run: cp .env.example .env
+      - name: Construir la aplicación
+        run: docker compose build web
+      - name: Verificar que las migraciones están al día
+        run: docker compose run --rm web python manage.py makemigrations --check --dry-run
+      - name: Probar flujos y reglas contra PostgreSQL
+        run: docker compose run --rm web python manage.py test inventory -v 2
+      - name: Detener contenedores
+        if: always()
+        run: docker compose down

@@ -17,7 +17,7 @@ from .services import InventoryError, is_owner, register_movement
 def profile_required(view):
     @wraps(view)
     def guarded(request, *args, **kwargs):
-        if not UserProfile.objects.filter(user=request.user).exists():
+        if not request.user.is_active or not UserProfile.objects.filter(user=request.user).exists():
             return HttpResponseForbidden("La cuenta no tiene un perfil autorizado.")
         return view(request, *args, **kwargs)
     return guarded

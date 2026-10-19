@@ -11,21 +11,38 @@ class InventoryError(ValueError):
 
 
 def is_owner(user):
-    return user.is_authenticated and UserProfile.objects.filter(user=user, role=UserProfile.Role.OWNER).exists()
+    return user.is_authenticated and user.is_active and UserProfile.objects.filter(user=user, role=UserProfile.Role.OWNER).exists()
+
+
+def _whole_number(value):
+    """Do not truncate floats or accept booleans as inventory units/IDs."""
+    if type(value) is int:
+        return value
+    if isinstance(value, str) and value.isascii() and value.isdecimal():
+        return int(value)
+    raise ValueError("Se esperaba un entero.")
 
 
 def _canonical(type_, presentation_id, quantity, source_id, destination_id, reason):
+    if not isinstance(reason, str):
+        raise ValueError("Motivo inválido.")
+    reason = reason.strip()
+    if len(reason) > 500:
+        raise ValueError("El motivo supera el límite permitido.")
     return {
-        "type": type_, "presentation_id": int(presentation_id), "quantity": int(quantity),
-        "source_id": int(source_id), "destination_id": int(destination_id) if destination_id else None,
-        "reason": reason.strip(),
+        "type": type_, "presentation_id": _whole_number(presentation_id),
+        "quantity": _whole_number(quantity), "source_id": _whole_number(source_id),
+        "destination_id": _whole_number(destination_id) if destination_id not in (None, "") else None,
+        "reason": reason,
     }
 
 
 def register_movement(*, user, type_, presentation_id, quantity, source_id,
                       destination_id=None, reason="", idempotency_key=None):
     """Confirm one complete manual operation. Repeating its key cannot apply stock twice."""
-    if not user.is_authenticated or not UserProfile.objects.filter(user=user).exists():
+    if (user is None or not getattr(user, "is_authenticated", False)
+            or not getattr(user, "is_active", False)
+            or not UserProfile.objects.filter(user=user).exists()):
         raise InventoryError("Usuario sin perfil autorizado.")
     if type_ not in Movement.Type.values:
         raise InventoryError("Tipo de movimiento inválido.")

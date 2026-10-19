@@ -3,6 +3,7 @@ from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Q
+from django.db.models.functions import Lower
 
 
 class UserProfile(models.Model):
@@ -26,6 +27,7 @@ class Product(models.Model):
 
     class Meta:
         ordering = ["name"]
+        constraints = [models.UniqueConstraint(Lower("code"), name="product_code_ci_unique")]
 
     def __str__(self):
         return self.name
@@ -48,7 +50,10 @@ class Presentation(models.Model):
 
     class Meta:
         ordering = ["product__name", "name"]
-        constraints = [models.CheckConstraint(condition=Q(content_value__gt=0), name="presentation_positive_content")]
+        constraints = [
+            models.CheckConstraint(condition=Q(content_value__gt=0), name="presentation_positive_content"),
+            models.UniqueConstraint(Lower("code"), name="presentation_code_ci_unique"),
+        ]
 
     def __str__(self):
         return f"{self.product.name} · {self.name}"
@@ -62,6 +67,7 @@ class Location(models.Model):
 
     class Meta:
         ordering = ["name"]
+        constraints = [models.UniqueConstraint(Lower("code"), name="location_code_ci_unique")]
 
     def __str__(self):
         return self.name

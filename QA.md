@@ -4,10 +4,21 @@
 
 - La imagen Docker se construyó y PostgreSQL inició con el volumen `postgres_data`.
 - Las migraciones se aplicaron y `seed_demo` creó dos cuentas, tres productos, cinco presentaciones y cinco movimientos iniciales. Stock inicial: 57 unidades distribuidas en cinco posiciones.
-- Las 11 pruebas automáticas sobre PostgreSQL terminaron correctamente, incluida la venta simultánea de la última unidad por dos usuarios: solo una fue aceptada.
+- Las 32 pruebas automáticas de PostgreSQL comprueban recorridos completos, formularios manipulados, CSRF, permisos, doble confirmación, operaciones vencidas entre vista previa y confirmación, idempotencia y ventas concurrentes.
 - En el navegador, el dueño inició sesión, revisó inventario e hizo un traslado de **2 barras BARRA-100 de Display a Almacén**. El historial mostró `-2` en Display y `+2` en Almacén. El inventario mostró 22 y 2 respectivamente.
 - Tras reiniciar los contenedores de web y base de datos, el inventario siguió mostrando 22 y 2. Total: 57.
 - Repetir `seed_demo` dejó seis movimientos (cinco iniciales y el traslado de QA) y 57 unidades: no duplicó la carga inicial.
+
+## Pruebas adversas añadidas
+
+- Rechazo de cantidades decimales, booleanas, negativas, excesivas y motivos mal formados sin escritura parcial.
+- Si otro usuario consume stock tras la vista previa, la confirmación rechaza la venta obsoleta.
+- Un producto o ubicación desactivado antes de confirmar no se puede usar.
+- Doble confirmación, reintentos simultáneos con la misma clave y claves reutilizadas por otra cuenta no duplican stock.
+- Los códigos de catálogo son únicos sin distinguir mayúsculas incluso a nivel de base de datos.
+- Una cuenta desactivada no puede registrar movimientos.
+- Una secuencia seudoaleatoria reproducible contrasta el saldo con la suma de movimientos confirmados tras cada paso.
+- La carga de demostración se prueba automáticamente para asegurar que repetirla no duplica existencias ni restablece contraseñas cambiadas.
 
 ## Recorrido para la presentación
 

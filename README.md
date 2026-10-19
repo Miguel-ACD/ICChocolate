@@ -37,6 +37,8 @@ docker compose run --rm web python manage.py test inventory -v 2
 
 Los tests crean su propia base de datos temporal de PostgreSQL. Cubren acceso y permisos, compra, venta, traslado, rechazo de stock insuficiente, operación incompleta, motivo obligatorio, atomicidad e idempotencia. Véase [QA.md](QA.md) para el recorrido manual y el resultado comprobado.
 
+La misma suite corre en GitHub Actions en cada cambio de `main` y en cada pull request. El flujo comprueba también que los modelos y las migraciones estén sincronizados.
+
 ## Respaldo
 
 Detén temporalmente las escrituras de la web antes de un respaldo para tener un punto consistente:
