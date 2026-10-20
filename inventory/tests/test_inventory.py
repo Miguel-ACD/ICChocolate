@@ -123,6 +123,46 @@ class InventoryFlowTests(TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertFalse(Location.objects.filter(code="KITCHEN").exists())
 
+    def test_alias_is_saved_and_used_for_existing_movements(self):
+        self.move(quantity=4)
+        self.client.force_login(self.employee)
+        response = self.client.post(reverse("alias_settings"), {
+            "alias": "  Ana   Repostera  ", "role": UserProfile.Role.OWNER, "user": self.owner.pk,
+        })
+        self.assertRedirects(response, reverse("dashboard"))
+        self.employee.profile.refresh_from_db()
+        self.assertEqual(self.employee.profile.alias, "Ana Repostera")
+        self.assertEqual(self.employee.profile.role, UserProfile.Role.EMPLOYEE)
+        for page in ("dashboard", "movement_history"):
+            rendered = self.client.get(reverse(page))
+            self.assertContains(rendered, "Ana Repostera")
+            self.assertNotIn("employee@example.test", rendered.content.decode().split("<table", 1)[1])
+            self.assertContains(rendered, "<th>Fecha</th>", html=True)
+            self.assertContains(rendered, "<th>Hora</th>", html=True)
+
+    def test_alias_validation_does_not_change_database(self):
+        self.client.force_login(self.employee)
+        response = self.client.post(reverse("alias_settings"), {"alias": " "})
+        self.assertEqual(response.status_code, 200)
+        self.employee.profile.refresh_from_db()
+        self.assertEqual(self.employee.profile.alias, "Usuario")
+
+    def test_product_and_movement_forms_open_as_modals(self):
+        self.client.force_login(self.employee)
+        movement = self.client.get(reverse("movement_new"))
+        self.assertContains(movement, 'role="dialog"')
+        self.assertContains(movement, 'aria-modal="true"')
+        self.assertNotContains(movement, 'Nuevo movimiento</a>')
+        incomplete = self.client.post(reverse("movement_new"), {"type": "VENTA"})
+        self.assertContains(incomplete, 'role="dialog"')
+        self.assertEqual(Movement.objects.count(), 0)
+        self.client.force_login(self.owner)
+        product = self.client.get(reverse("product_new"))
+        self.assertContains(product, 'role="dialog"')
+        invalid = self.client.post(reverse("product_new"), {"code": "INCOMPLETE"})
+        self.assertContains(invalid, 'role="dialog"')
+        self.assertFalse(Product.objects.filter(code="INCOMPLETE").exists())
+
 
 class ConcurrentSaleTests(TransactionTestCase):
     def test_two_sales_cannot_spend_the_same_unit(self):

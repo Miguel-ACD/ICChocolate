@@ -9,7 +9,7 @@ from django.db.models import Sum
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
-from .forms import LocationForm, MovementForm, ProductForm
+from .forms import AliasForm, LocationForm, MovementForm, ProductForm
 from .models import Location, Movement, Presentation, Product, Stock, UserProfile
 from .services import InventoryError, is_owner, register_movement
 
@@ -49,7 +49,7 @@ def logout_view(request):
 def dashboard(request):
     stocks = Stock.objects.select_related("presentation__product", "location").filter(quantity__gt=0)
     total = stocks.aggregate(total=Sum("quantity"))["total"] or 0
-    recent = Movement.objects.select_related("created_by").prefetch_related("lines")[:5]
+    recent = Movement.objects.select_related("created_by__profile").prefetch_related("lines")[:5]
     return render(request, "inventory/dashboard.html", {
         "total_units": total, "positions": stocks.count(), "products": Product.objects.filter(active=True).count(),
         "recent": recent, "owner": is_owner(request.user),
@@ -122,8 +122,19 @@ def movement_confirm(request):
 @login_required
 @profile_required
 def movement_history(request):
-    movements = Movement.objects.select_related("created_by").prefetch_related("lines")[:100]
+    movements = Movement.objects.select_related("created_by__profile").prefetch_related("lines")[:100]
     return render(request, "inventory/history.html", {"movements": movements, "owner": is_owner(request.user)})
+
+
+@login_required
+@profile_required
+def alias_settings(request):
+    form = AliasForm(request.POST or None, instance=request.user.profile)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Alias actualizado.")
+        return redirect("dashboard")
+    return render(request, "inventory/alias_form.html", {"form": form, "owner": is_owner(request.user)})
 
 
 @login_required

@@ -1,8 +1,11 @@
 {% extends 'inventory/base.html' %}
 {% block title %}Inventario · ICChocolate{% endblock %}
 {% block breadcrumb %}Inventario{% endblock %}
+{% block page_label %}CATÁLOGO Y EXISTENCIAS{% endblock %}
+{% block page_heading %}Inventario{% endblock %}
+{% block page_description %}Existencias por producto, presentación y ubicación.{% endblock %}
+{% block page_actions %}{% if owner %}<a class="button button-outline" data-modal-open href="{% url 'product_new' %}">+ Crear producto</a>{% endif %}<a class="button button-dark" data-modal-open href="{% url 'movement_new' %}">+ Movimiento</a>{% endblock %}
 {% block content %}
-<div class="page-heading"><div><span class="eyebrow">CATÁLOGO Y EXISTENCIAS</span><h1>Inventario</h1><p>Existencias por producto, presentación y ubicación.</p></div><div class="heading-actions">{% if owner %}<a class="button button-outline" href="{% url 'product_new' %}">+ Crear producto</a>{% endif %}<a class="button button-dark" href="{% url 'movement_new' %}">+ Movimiento</a></div></div>
 <form class="searchbar" method="get"><input name="q" value="{{ query }}" placeholder="Buscar producto, código o ubicación" aria-label="Buscar inventario"><button type="submit">Buscar →</button></form>
 <div class="panel table-panel"><table><thead><tr><th>Producto / presentación</th><th>Código</th><th>Una unidad</th><th>Ubicación</th><th class="numeric">Disponible</th></tr></thead><tbody>{% for stock in stocks %}<tr><td><strong>{{ stock.presentation.product.name }}</strong><small>{{ stock.presentation.name }}</small></td><td>{{ stock.presentation.code }}</td><td>{{ stock.presentation.unit_description }}</td><td>{{ stock.location.name }}</td><td class="numeric"><span class="quantity">{{ stock.quantity }}</span></td></tr>{% empty %}<tr><td colspan="5" class="empty">No hay existencias que coincidan. Crea un producto o registra una compra.</td></tr>{% endfor %}</tbody></table></div>
 <p class="help-note">Las cantidades se calculan a partir de movimientos confirmados; no se editan directamente.</p>

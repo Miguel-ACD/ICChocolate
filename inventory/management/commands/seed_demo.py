@@ -29,8 +29,8 @@ class Command(BaseCommand):
         if created:
             employee.set_password(employee_password)
             employee.save(update_fields=["password"])
-        UserProfile.objects.get_or_create(user=owner, defaults={"role": UserProfile.Role.OWNER})
-        UserProfile.objects.get_or_create(user=employee, defaults={"role": UserProfile.Role.EMPLOYEE})
+        UserProfile.objects.get_or_create(user=owner, defaults={"role": UserProfile.Role.OWNER, "alias": "Dueño"})
+        UserProfile.objects.get_or_create(user=employee, defaults={"role": UserProfile.Role.EMPLOYEE, "alias": "Empleado"})
         warehouse, _ = Location.objects.get_or_create(code="ALMACEN", defaults={"name": "Almacén"})
         display, _ = Location.objects.get_or_create(code="DISPLAY", defaults={"name": "Display"})
         bar, _ = Product.objects.get_or_create(code="CHOC-BARRA", defaults={"name": "Chocolate en barra"})

@@ -9,6 +9,13 @@ Aplicación local de inventario de chocolate para escritorio. Esta entrega muest
 - Antes de afectar el stock, la persona revisa un resumen y confirma. Cada operación queda atribuida a un usuario y fecha.
 - Cantidades enteras positivas, disponibilidad no negativa, motivos obligatorios en consumo y merma, traslados entre ubicaciones distintas, transacciones atómicas y clave de idempotencia para evitar doble aplicación.
 - Datos conservados en un volumen de PostgreSQL al reiniciar o reconstruir contenedores.
+- Los formularios de producto y movimiento se abren como ventanas centradas sobre la pantalla actual. La revisión del movimiento continúa antes de guardar stock.
+
+## Alias de responsables
+
+Cada perfil tiene un `alias` de hasta 40 caracteres en PostgreSQL. Se cambia desde **Configurar alias**, al pie de la barra izquierda. El correo sigue siendo la credencial de acceso y aparece en el bloque de cuenta de esa barra; el resumen, historial y encabezado muestran el alias. Cada usuario solo puede cambiar el suyo; enviar otros campos en el formulario no modifica el rol ni el correo.
+
+La migración `0003_userprofile_alias` asigna un alias inicial a las cuentas existentes a partir de su nombre de usuario; las cuentas demo nuevas se crean como **Dueño** y **Empleado**. Los movimientos continúan relacionados con la cuenta real mediante `Movement.created_by`. Al cambiar el alias, también cambia el nombre visible en movimientos anteriores, porque el historial consulta el alias vigente; el autor registrado y el stock no se modifican.
 
 ## Iniciar en Windows con Docker Desktop
 
@@ -60,7 +67,7 @@ inventory/services.py           reglas y transacciones de inventario
 inventory/forms.py              validación de entradas manuales
 inventory/views.py              pantallas y permisos
 inventory/templates/inventory/  interfaz HTML
-inventory/static/inventory/     estilo visual
+inventory/static/inventory/     estilo visual y apertura de ventanas
 inventory/management/commands/  carga idempotente y trabajador reservado
 inventory/tests/                pruebas automáticas
 compose.yaml                    web + PostgreSQL; trabajador futuro opcional

@@ -1,5 +1,18 @@
 from django import forms
-from .models import Location, Movement, Presentation, Product
+from .models import Location, Movement, Presentation, Product, UserProfile
+
+
+class AliasForm(forms.ModelForm):
+    class Meta:
+        model = UserProfile
+        fields = ["alias"]
+        labels = {"alias": "Alias visible"}
+
+    def clean_alias(self):
+        alias = " ".join(self.cleaned_data["alias"].split())
+        if len(alias) < 2:
+            raise forms.ValidationError("Escribe un alias de al menos dos caracteres.")
+        return alias
 
 
 class MovementForm(forms.Form):

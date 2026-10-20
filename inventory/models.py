@@ -13,9 +13,10 @@ class UserProfile(models.Model):
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="profile")
     role = models.CharField(max_length=8, choices=Role.choices)
+    alias = models.CharField(max_length=40, default="Usuario")
 
     def __str__(self):
-        return f"{self.user.username} ({self.get_role_display()})"
+        return f"{self.alias} ({self.get_role_display()})"
 
 
 class Product(models.Model):
