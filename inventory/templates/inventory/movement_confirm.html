@@ -1,5 +1,6 @@
 {% extends 'inventory/base.html' %}
 {% block title %}Confirmar movimiento · ICChocolate{% endblock %}
+{% block breadcrumb %}Confirmar movimiento{% endblock %}
 {% block content %}
 <div class="page-heading"><div><span class="eyebrow">PASO FINAL</span><h1>Revisa y confirma</h1><p>El inventario cambiará únicamente al confirmar esta operación.</p></div></div>
 <div class="panel confirm-panel"><div class="confirm-grid"><div><span>Operación</span><strong>{{ type_label }}</strong></div><div><span>Presentación</span><strong>{{ presentation }}</strong></div><div><span>Unidades</span><strong>{{ pending.quantity }}</strong></div><div><span>Ubicación</span><strong>{{ source.name }}</strong></div>{% if destination %}<div><span>Destino</span><strong>{{ destination.name }}</strong></div>{% endif %}{% if pending.reason %}<div><span>Motivo</span><strong>{{ pending.reason }}</strong></div>{% endif %}</div><div class="confirm-actions"><a href="{% url 'movement_new' %}" class="button button-outline">Volver y corregir</a><form method="post">{% csrf_token %}<button class="button button-dark" type="submit">Confirmar movimiento →</button></form></div></div>

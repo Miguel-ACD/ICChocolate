@@ -1,5 +1,6 @@
 {% extends 'inventory/base.html' %}
 {% block title %}Historial · ICChocolate{% endblock %}
+{% block breadcrumb %}Historial{% endblock %}
 {% block content %}
 <div class="page-heading"><div><span class="eyebrow">REGISTRO PERMANENTE</span><h1>Historial</h1><p>Cada movimiento conserva responsable, fecha y efecto sobre las existencias.</p></div><a class="button button-dark" href="{% url 'movement_new' %}">+ Movimiento</a></div>
 <div class="panel table-panel"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Detalle</th><th>Responsable</th><th>Motivo</th></tr></thead><tbody>{% for movement in movements %}<tr><td>{{ movement.created_at|date:'d/m/Y H:i' }}</td><td><span class="tag tag-{{ movement.type|lower }}">{{ movement.get_type_display }}</span></td><td>{% for line in movement.lines.all %}<div class="history-line"><strong>{% if line.delta > 0 %}+{% endif %}{{ line.delta }}</strong> {{ line.presentation_snapshot }}<small>{{ line.location_snapshot }}</small></div>{% endfor %}</td><td>{{ movement.created_by.username }}</td><td>{{ movement.reason|default:'—' }}</td></tr>{% empty %}<tr><td colspan="5" class="empty">Aún no hay movimientos.</td></tr>{% endfor %}</tbody></table></div>

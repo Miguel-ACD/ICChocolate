@@ -1,5 +1,6 @@
 {% extends 'inventory/base.html' %}
 {% block title %}Inventario · ICChocolate{% endblock %}
+{% block breadcrumb %}Inventario{% endblock %}
 {% block content %}
 <div class="page-heading"><div><span class="eyebrow">CATÁLOGO Y EXISTENCIAS</span><h1>Inventario</h1><p>Existencias por producto, presentación y ubicación.</p></div><div class="heading-actions">{% if owner %}<a class="button button-outline" href="{% url 'product_new' %}">+ Crear producto</a>{% endif %}<a class="button button-dark" href="{% url 'movement_new' %}">+ Movimiento</a></div></div>
 <form class="searchbar" method="get"><input name="q" value="{{ query }}" placeholder="Buscar producto, código o ubicación" aria-label="Buscar inventario"><button type="submit">Buscar →</button></form>

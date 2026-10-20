@@ -8,33 +8,37 @@
   <link rel="stylesheet" href="{% static 'inventory/style.css' %}">
 </head>
 <body>
+  {% with page=request.resolver_match.url_name %}
   <div class="app-shell">
     <aside class="sidebar">
-      <a class="brand" href="{% url 'dashboard' %}"><span class="brand-mark">◆</span><span>IC<span class="brand-em">Chocolate</span><small>INVENTARIO · DEMO</small></span></a>
-      <div class="nav-label">ESPACIO DE TRABAJO</div>
-      <nav aria-label="Navegación principal">
-        <a href="{% url 'dashboard' %}" class="nav-link">◫ <span>Resumen</span></a>
-        <a href="{% url 'inventory' %}" class="nav-link">▦ <span>Inventario</span></a>
-        <a href="{% url 'movement_new' %}" class="nav-link">↗ <span>Nuevo movimiento</span></a>
-        <a href="{% url 'movement_history' %}" class="nav-link">◷ <span>Historial</span></a>
+      <a class="brand" href="{% url 'dashboard' %}" aria-label="ICChocolate, ir al resumen"><span class="brand-mark" aria-hidden="true">IC</span><span class="brand-name">ICChocolate<small>CONTROL DE INVENTARIO</small></span></a>
+      <div class="sidebar-section-label">OPERACIONES</div>
+      <nav aria-label="Navegación principal" class="nav-list">
+        <a href="{% url 'dashboard' %}" class="nav-link {% if page == 'dashboard' %}active{% endif %}" {% if page == 'dashboard' %}aria-current="page"{% endif %}><span class="nav-icon" aria-hidden="true">◫</span> Resumen</a>
+        <a href="{% url 'inventory' %}" class="nav-link {% if page == 'inventory' %}active{% endif %}" {% if page == 'inventory' %}aria-current="page"{% endif %}><span class="nav-icon" aria-hidden="true">▦</span> Inventario</a>
+        <a href="{% url 'movement_new' %}" class="nav-link {% if page == 'movement_new' or page == 'movement_confirm' %}active{% endif %}" {% if page == 'movement_new' or page == 'movement_confirm' %}aria-current="page"{% endif %}><span class="nav-icon" aria-hidden="true">↗</span> Nuevo movimiento</a>
+        <a href="{% url 'movement_history' %}" class="nav-link {% if page == 'movement_history' %}active{% endif %}" {% if page == 'movement_history' %}aria-current="page"{% endif %}><span class="nav-icon" aria-hidden="true">◷</span> Historial</a>
       </nav>
       {% if owner %}
-      <div class="nav-label">ADMINISTRACIÓN</div>
-      <nav aria-label="Administración">
-        <a href="{% url 'product_new' %}" class="nav-link">＋ <span>Crear producto</span></a>
-        <a href="{% url 'location_new' %}" class="nav-link">⌖ <span>Crear ubicación</span></a>
+      <div class="sidebar-section-label">ADMINISTRACIÓN</div>
+      <nav aria-label="Administración" class="nav-list">
+        <a href="{% url 'product_new' %}" class="nav-link {% if page == 'product_new' %}active{% endif %}" {% if page == 'product_new' %}aria-current="page"{% endif %}><span class="nav-icon" aria-hidden="true">＋</span> Crear producto</a>
+        <a href="{% url 'location_new' %}" class="nav-link {% if page == 'location_new' %}active{% endif %}" {% if page == 'location_new' %}aria-current="page"{% endif %}><span class="nav-icon" aria-hidden="true">⌖</span> Crear ubicación</a>
       </nav>
       {% endif %}
       <div class="sidebar-bottom">
         <div class="user-line"><span class="avatar">{{ request.user.username|slice:':1'|upper }}</span><span><strong>{{ request.user.username }}</strong><small>{% if owner %}Dueño{% else %}Empleado{% endif %}</small></span></div>
-        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="logout" type="submit">Cerrar sesión ↗</button></form>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="logout" type="submit">Cerrar sesión <span aria-hidden="true">↗</span></button></form>
       </div>
     </aside>
-    <main class="main">
-      <header class="topbar"><span>World Chocolate Day <span class="topbar-dot">◆</span> Inventario</span><span class="demo-pill">● DEMO LOCAL</span></header>
-      {% if messages %}<div class="messages" role="status">{% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
-      {% block content %}{% endblock %}
-    </main>
+    <div class="workspace">
+      <header class="topbar"><div class="breadcrumb">ICChocolate <span>/</span> {% block breadcrumb %}Panel de control{% endblock %}</div><div class="topbar-right"><span class="status-dot" aria-hidden="true"></span> Sistema operativo <span class="topbar-separator"></span> {{ request.user.username }}</div></header>
+      <main class="main">
+        {% if messages %}<div class="messages" role="status">{% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+        {% block content %}{% endblock %}
+      </main>
+    </div>
   </div>
+  {% endwith %}
 </body>
 </html>

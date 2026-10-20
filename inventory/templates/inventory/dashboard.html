@@ -1,17 +1,16 @@
 {% extends 'inventory/base.html' %}
 {% block title %}Resumen · ICChocolate{% endblock %}
+{% block breadcrumb %}Resumen{% endblock %}
 {% block content %}
-<section class="hero">
-  <div><div class="eyebrow">PANEL GENERAL / INVENTARIO</div><h1>Un vistazo a tu <em>chocolate.</em></h1><p>Controla las existencias y sigue cada entrada, salida o traslado en un solo lugar.</p><a class="button button-dark" href="{% url 'movement_new' %}">Registrar movimiento <span>→</span></a></div>
-  <div class="hero-art" aria-hidden="true"><span class="choc one">▦</span><span class="choc two">◆</span><span class="choc three">▦</span><div class="hero-circle"></div></div>
-</section>
-<div class="section-heading"><div><span class="eyebrow">ESTADO ACTUAL</span><h2>Inventario en números</h2></div><a class="text-link" href="{% url 'inventory' %}">Ver inventario completo →</a></div>
-<section class="stats">
+<div class="page-heading dashboard-heading"><div><span class="eyebrow">PANEL GENERAL</span><h1>Resumen de inventario</h1><p>Consulta las existencias y la actividad reciente de tu operación.</p></div><a class="button button-primary" href="{% url 'movement_new' %}">Registrar movimiento <span aria-hidden="true">→</span></a></div>
+<section class="welcome-panel"><div><span class="welcome-kicker"><span class="status-dot" aria-hidden="true"></span> CONTROL EN TIEMPO REAL</span><h2>Todo tu chocolate, en un solo lugar.</h2><p>Revisa el stock por ubicación, registra entradas y salidas y sigue el historial de cada operación.</p><a href="{% url 'inventory' %}">Explorar inventario <span aria-hidden="true">→</span></a></div><div class="welcome-graphic" aria-hidden="true"><span class="graphic-ring ring-one"></span><span class="graphic-ring ring-two"></span><span class="graphic-core">IC</span></div></section>
+<div class="section-heading"><div><span class="eyebrow">ESTADO ACTUAL</span><h2>Indicadores principales</h2></div><span class="section-hint">Datos de movimientos confirmados</span></div>
+<section class="stats" aria-label="Indicadores de inventario">
   <div class="stat"><div class="stat-icon">▦</div><span>Unidades disponibles</span><strong>{{ total_units }}</strong><small>En todas las ubicaciones</small></div>
-  <div class="stat"><div class="stat-icon">◇</div><span>Productos activos</span><strong>{{ products }}</strong><small>Catálogo de demostración</small></div>
+  <div class="stat"><div class="stat-icon">◇</div><span>Productos activos</span><strong>{{ products }}</strong><small>En el catálogo</small></div>
   <div class="stat"><div class="stat-icon">⌖</div><span>Posiciones con stock</span><strong>{{ positions }}</strong><small>Presentación y ubicación</small></div>
 </section>
-<div class="section-heading"><div><span class="eyebrow">TRAZABILIDAD</span><h2>Movimientos recientes</h2></div><a class="text-link" href="{% url 'movement_history' %}">Ver historial →</a></div>
+<div class="section-heading"><div><span class="eyebrow">TRAZABILIDAD</span><h2>Movimientos recientes</h2></div><a class="text-link" href="{% url 'movement_history' %}">Ver historial completo <span aria-hidden="true">→</span></a></div>
 <div class="panel table-panel"><table><thead><tr><th>Operación</th><th>Presentación</th><th>Responsable</th><th>Fecha</th></tr></thead><tbody>{% for movement in recent %}<tr><td><span class="tag tag-{{ movement.type|lower }}">{{ movement.get_type_display }}</span></td><td>{% for line in movement.lines.all %}{{ line.presentation_snapshot }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</td><td>{{ movement.created_by.username }}</td><td>{{ movement.created_at|date:'d/m/Y H:i' }}</td></tr>{% empty %}<tr><td colspan="4" class="empty">Aún no hay movimientos.</td></tr>{% endfor %}</tbody></table></div>
-<div class="roadmap-note"><strong>Próximamente</strong><span>Monitoreo ESP32, fotografías con OCR y asistente de consulta se integrarán en siguientes entregas.</span></div>
+<div class="roadmap-note"><strong>Próximos pasos</strong><span>La integración con ESP32, las fotografías con OCR y el asistente de consulta llegarán en futuras entregas.</span></div>
 {% endblock %}
