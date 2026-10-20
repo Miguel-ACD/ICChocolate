@@ -5,10 +5,16 @@
 {% block page_heading %}Configurar alias{% endblock %}
 {% block page_description %}Este nombre se muestra junto a tus movimientos y en tu sesión.{% endblock %}
 {% block content %}
-<div class="panel form-panel narrow"><form method="post" class="form-stack">{% csrf_token %}
-  {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
-  {% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</div>{% endfor %}
-  <p class="help-note">Tu correo sigue siendo la credencial de acceso; el alias se usa para mostrar tu nombre.</p>
-  <div><button class="button button-dark" type="submit">Guardar alias</button></div>
-</form></div>
+<div class="modal-backdrop">
+  <a class="modal-shade" data-modal-close href="{% url 'dashboard' %}" aria-label="Cerrar ventana"></a>
+  <section class="modal-card alias-modal" role="dialog" aria-modal="true" aria-labelledby="alias-title">
+    <div class="modal-header"><div><span class="eyebrow">MI PERFIL</span><h2 id="alias-title">Configurar alias</h2><p>Este nombre aparecerá en tu sesión y en los movimientos.</p></div><a class="modal-close" data-modal-close href="{% url 'dashboard' %}" aria-label="Cerrar ventana">×</a></div>
+    <form method="post" class="form-stack">{% csrf_token %}
+      {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
+      {% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</div>{% endfor %}
+      <div class="modal-help">Tu correo sigue siendo la credencial de acceso.</div>
+      <div class="modal-actions"><a class="button button-outline" data-modal-close href="{% url 'dashboard' %}">Cancelar</a><button class="button button-dark" type="submit">Guardar alias →</button></div>
+    </form>
+  </section>
+</div>
 {% endblock %}

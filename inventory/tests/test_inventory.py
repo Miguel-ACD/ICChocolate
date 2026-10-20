@@ -126,6 +126,11 @@ class InventoryFlowTests(TestCase):
     def test_alias_is_saved_and_used_for_existing_movements(self):
         self.move(quantity=4)
         self.client.force_login(self.employee)
+        dashboard = self.client.get(reverse("dashboard"))
+        self.assertContains(dashboard, f'href="{reverse("alias_settings")}"')
+        alias_form = self.client.get(reverse("alias_settings"))
+        self.assertContains(alias_form, 'class="modal-card alias-modal"')
+        self.assertContains(alias_form, 'aria-modal="true"')
         response = self.client.post(reverse("alias_settings"), {
             "alias": "  Ana   Repostera  ", "role": UserProfile.Role.OWNER, "user": self.owner.pk,
         })
@@ -152,6 +157,7 @@ class InventoryFlowTests(TestCase):
         movement = self.client.get(reverse("movement_new"))
         self.assertContains(movement, 'role="dialog"')
         self.assertContains(movement, 'aria-modal="true"')
+        self.assertContains(movement, 'class="form-stack compact-form"')
         self.assertNotContains(movement, 'Nuevo movimiento</a>')
         incomplete = self.client.post(reverse("movement_new"), {"type": "VENTA"})
         self.assertContains(incomplete, 'role="dialog"')
@@ -159,6 +165,7 @@ class InventoryFlowTests(TestCase):
         self.client.force_login(self.owner)
         product = self.client.get(reverse("product_new"))
         self.assertContains(product, 'role="dialog"')
+        self.assertContains(product, 'class="form-stack compact-form"')
         invalid = self.client.post(reverse("product_new"), {"code": "INCOMPLETE"})
         self.assertContains(invalid, 'role="dialog"')
         self.assertFalse(Product.objects.filter(code="INCOMPLETE").exists())

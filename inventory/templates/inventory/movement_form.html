@@ -7,9 +7,9 @@
 {% block content %}
 <div class="modal-backdrop">
   <a class="modal-shade" data-modal-close href="{% url 'dashboard' %}" aria-label="Cerrar ventana"></a>
-  <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="movement-title">
+  <section class="modal-card movement-modal" role="dialog" aria-modal="true" aria-labelledby="movement-title">
     <div class="modal-header"><div><span class="eyebrow">REGISTRO MANUAL</span><h2 id="movement-title">Nuevo movimiento</h2><p>Completa la operación y revísala antes de confirmar.</p></div><a class="modal-close" data-modal-close href="{% url 'dashboard' %}" aria-label="Cerrar ventana">×</a></div>
-    <form method="post" class="form-stack">{% csrf_token %}
+    <form method="post" class="form-stack compact-form">{% csrf_token %}
       {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
       {% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</div>{% endfor %}
       <div class="modal-help">Las compras suman unidades; ventas, consumos y mermas las descuentan. El stock nunca puede quedar negativo.</div>

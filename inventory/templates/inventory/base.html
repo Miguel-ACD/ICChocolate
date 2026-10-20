@@ -27,7 +27,7 @@
       {% endif %}
       <div class="sidebar-bottom">
         <div class="user-line"><span class="avatar">{{ request.user.profile.alias|slice:':1'|upper }}</span><span><strong>{{ request.user.profile.alias }}</strong><small class="account-email">{{ request.user.username }}</small><small>{% if owner %}Dueño{% else %}Empleado{% endif %}</small></span></div>
-        <a class="alias-link" href="{% url 'alias_settings' %}">Configurar alias</a>
+        <a class="alias-link" data-modal-open href="{% url 'alias_settings' %}">Configurar alias</a>
         <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="logout" type="submit">Cerrar sesión <span aria-hidden="true">↗</span></button></form>
       </div>
     </aside>
