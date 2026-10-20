@@ -1,0 +1,8 @@
+<nav class="pagination" aria-label="Páginas de resultados">
+  <span class="page-summary">{{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ page_obj.paginator.count }}</span>
+  <div class="page-buttons">
+    {% if page_obj.has_previous %}<a href="?{% if query %}q={{ query|urlencode }}&amp;{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Página anterior">‹</a>{% else %}<span class="disabled" aria-hidden="true">‹</span>{% endif %}
+    {% for number in page_numbers %}{% if number == '…' %}<span class="ellipsis">…</span>{% elif number == page_obj.number %}<span class="current" aria-current="page">{{ number }}</span>{% else %}<a href="?{% if query %}q={{ query|urlencode }}&amp;{% endif %}page={{ number }}">{{ number }}</a>{% endif %}{% endfor %}
+    {% if page_obj.has_next %}<a href="?{% if query %}q={{ query|urlencode }}&amp;{% endif %}page={{ page_obj.next_page_number }}" aria-label="Página siguiente">›</a>{% else %}<span class="disabled" aria-hidden="true">›</span>{% endif %}
+  </div>
+</nav>

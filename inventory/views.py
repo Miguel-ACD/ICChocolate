@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.db import IntegrityError, transaction
 from django.db.models import Sum
+from django.core.paginator import Paginator
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
@@ -49,7 +50,7 @@ def logout_view(request):
 def dashboard(request):
     stocks = Stock.objects.select_related("presentation__product", "location").filter(quantity__gt=0)
     total = stocks.aggregate(total=Sum("quantity"))["total"] or 0
-    recent = Movement.objects.select_related("created_by__profile").prefetch_related("lines")[:5]
+    recent = Movement.objects.select_related("created_by__profile").prefetch_related("lines").order_by("-created_at", "-pk")[:30]
     return render(request, "inventory/dashboard.html", {
         "total_units": total, "positions": stocks.count(), "products": Product.objects.filter(active=True).count(),
         "recent": recent, "owner": is_owner(request.user),
@@ -61,12 +62,17 @@ def dashboard(request):
 def inventory_list(request):
     query = request.GET.get("q", "").strip()[:100]
     stocks = Stock.objects.select_related("presentation__product", "location").order_by(
-        "presentation__product__name", "presentation__name", "location__name")
+        "presentation__product__name", "presentation__name", "location__name", "pk")
     if query:
         from django.db.models import Q
         stocks = stocks.filter(Q(presentation__product__name__icontains=query) |
                                Q(presentation__code__icontains=query) | Q(location__name__icontains=query))
-    return render(request, "inventory/inventory.html", {"stocks": stocks, "query": query, "owner": is_owner(request.user)})
+    page_obj = Paginator(stocks, 4).get_page(request.GET.get("page"))
+    return render(request, "inventory/inventory.html", {
+        "stocks": page_obj.object_list, "page_obj": page_obj,
+        "page_numbers": page_obj.paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1),
+        "query": query, "owner": is_owner(request.user),
+    })
 
 
 @login_required
@@ -122,8 +128,13 @@ def movement_confirm(request):
 @login_required
 @profile_required
 def movement_history(request):
-    movements = Movement.objects.select_related("created_by__profile").prefetch_related("lines")[:100]
-    return render(request, "inventory/history.html", {"movements": movements, "owner": is_owner(request.user)})
+    movements = Movement.objects.select_related("created_by__profile").prefetch_related("lines").order_by("-created_at", "-pk")
+    page_obj = Paginator(movements, 4).get_page(request.GET.get("page"))
+    return render(request, "inventory/history.html", {
+        "movements": page_obj.object_list, "page_obj": page_obj,
+        "page_numbers": page_obj.paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1),
+        "owner": is_owner(request.user),
+    })
 
 
 @login_required

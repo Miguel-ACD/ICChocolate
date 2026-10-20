@@ -163,6 +163,51 @@ class InventoryFlowTests(TestCase):
         self.assertContains(invalid, 'role="dialog"')
         self.assertFalse(Product.objects.filter(code="INCOMPLETE").exists())
 
+    def test_location_form_opens_as_modal_and_validates_before_saving(self):
+        self.client.force_login(self.owner)
+        inventory = self.client.get(reverse("inventory"))
+        self.assertContains(inventory, f'href="{reverse("location_new")}" data-modal-open')
+        form = self.client.get(reverse("location_new"))
+        self.assertContains(form, 'class="modal-card location-modal"')
+        self.assertContains(form, 'aria-modal="true"')
+        invalid = self.client.post(reverse("location_new"), {"code": "BOX-1"})
+        self.assertContains(invalid, 'role="dialog"')
+        self.assertFalse(Location.objects.filter(code="BOX-1").exists())
+        valid = self.client.post(reverse("location_new"), {"code": "BOX-1", "name": "Caja de chocolate"})
+        self.assertRedirects(valid, reverse("inventory"))
+        self.assertTrue(Location.objects.filter(code="BOX-1").exists())
+
+    def test_inventory_has_numbered_pages_and_preserves_search(self):
+        for index in range(6):
+            product = Product.objects.create(code=f"EXTRA-{index}", name=f"Extra {index}")
+            presentation = Presentation.objects.create(
+                product=product, code=f"EXTRA-{index}-1", name="Unidad",
+                unit_description="Una unidad", content_value=1, content_unit="PIEZA")
+            Stock.objects.create(presentation=presentation, location=self.warehouse, quantity=index + 1)
+        self.client.force_login(self.employee)
+        first = self.client.get(reverse("inventory"), {"q": "Extra"})
+        self.assertEqual(len(first.context["stocks"]), 4)
+        self.assertContains(first, "?q=Extra&amp;page=2")
+        second = self.client.get(reverse("inventory"), {"q": "Extra", "page": 2})
+        self.assertEqual(len(second.context["stocks"]), 2)
+        self.assertEqual(second.context["page_obj"].number, 2)
+        self.assertNotContains(second, "Extra 0")
+        self.assertContains(second, "Extra 5")
+
+    def test_dashboard_limits_recent_movements_and_history_uses_numbered_pages(self):
+        for _ in range(33):
+            self.move(quantity=1)
+        self.client.force_login(self.employee)
+        dashboard = self.client.get(reverse("dashboard"))
+        self.assertEqual(len(dashboard.context["recent"]), 30)
+        self.assertContains(dashboard, "Últimos 30")
+        first = self.client.get(reverse("movement_history"))
+        self.assertEqual(len(first.context["movements"]), 4)
+        self.assertContains(first, '?page=2')
+        last = self.client.get(reverse("movement_history"), {"page": 9})
+        self.assertEqual(len(last.context["movements"]), 1)
+        self.assertEqual(last.context["page_obj"].number, 9)
+
 
 class ConcurrentSaleTests(TransactionTestCase):
     def test_two_sales_cannot_spend_the_same_unit(self):

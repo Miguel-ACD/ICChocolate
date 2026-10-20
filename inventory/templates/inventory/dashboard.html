@@ -1,18 +1,17 @@
 {% extends 'inventory/base.html' %}
 {% block title %}Resumen · ICChocolate{% endblock %}
 {% block breadcrumb %}Resumen{% endblock %}
-{% block page_label %}PANEL GENERAL{% endblock %}
+{% block page_label %}{% endblock %}
 {% block page_heading %}Resumen de inventario{% endblock %}
 {% block page_description %}Consulta las existencias y la actividad reciente de tu operación.{% endblock %}
 {% block page_actions %}<a class="button button-primary" data-modal-open href="{% url 'movement_new' %}">Registrar movimiento <span aria-hidden="true">→</span></a>{% endblock %}
 {% block content %}
-<div class="section-heading first-section"><div><span class="eyebrow">ESTADO ACTUAL</span><h2>Indicadores principales</h2></div><a class="text-link" href="{% url 'inventory' %}">Ver inventario <span aria-hidden="true">→</span></a></div>
+<div class="section-heading first-section"><div><h2>Indicadores principales</h2></div><a class="text-link" href="{% url 'inventory' %}">Ver inventario <span aria-hidden="true">→</span></a></div>
 <section class="stats" aria-label="Indicadores de inventario">
   <div class="stat"><div class="stat-icon">{% include 'inventory/ui_icon.html' with icon='inventory' %}</div><span>Unidades disponibles</span><strong>{{ total_units }}</strong><small>En todas las ubicaciones</small></div>
   <div class="stat"><div class="stat-icon">{% include 'inventory/ui_icon.html' with icon='product' %}</div><span>Productos activos</span><strong>{{ products }}</strong><small>En el catálogo</small></div>
   <div class="stat"><div class="stat-icon">{% include 'inventory/ui_icon.html' with icon='location' %}</div><span>Posiciones con stock</span><strong>{{ positions }}</strong><small>Presentación y ubicación</small></div>
 </section>
-<div class="section-heading"><div><h2>Movimientos recientes</h2></div><a class="text-link" href="{% url 'movement_history' %}">Ver historial completo <span aria-hidden="true">→</span></a></div>
-<div class="panel table-panel"><table><thead><tr><th>Operación</th><th>Presentación</th><th>Responsable</th><th>Fecha</th><th>Hora</th></tr></thead><tbody>{% for movement in recent %}<tr><td><span class="tag tag-{{ movement.type|lower }}">{{ movement.get_type_display }}</span></td><td>{% for line in movement.lines.all %}{{ line.presentation_snapshot }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</td><td>{{ movement.created_by.profile.alias }}</td><td>{{ movement.created_at|date:'d/m/Y' }}</td><td>{{ movement.created_at|time:'H:i' }}</td></tr>{% empty %}<tr><td colspan="5" class="empty">Aún no hay movimientos.</td></tr>{% endfor %}</tbody></table></div>
-<div class="roadmap-note"><strong>Próximos pasos</strong><span>La integración con ESP32, las fotografías con OCR y el asistente de consulta llegarán en futuras entregas.</span></div>
+<div class="section-heading"><div><h2>Movimientos recientes <small class="heading-note">Últimos 30</small></h2></div><a class="text-link" href="{% url 'movement_history' %}">Ver historial completo <span aria-hidden="true">→</span></a></div>
+<div class="panel table-panel recent-table"><table><thead><tr><th>Operación</th><th>Presentación</th><th>Responsable</th><th>Fecha</th><th>Hora</th></tr></thead><tbody>{% for movement in recent %}<tr><td><span class="tag tag-{{ movement.type|lower }}">{{ movement.get_type_display }}</span></td><td>{% for line in movement.lines.all %}{{ line.presentation_snapshot }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</td><td>{{ movement.created_by.profile.alias }}</td><td>{{ movement.created_at|date:'d/m/Y' }}</td><td>{{ movement.created_at|time:'H:i' }}</td></tr>{% empty %}<tr><td colspan="5" class="empty">Aún no hay movimientos.</td></tr>{% endfor %}</tbody></table></div>
 {% endblock %}

@@ -1,9 +1,19 @@
 {% extends 'inventory/base.html' %}
 {% block title %}Crear ubicación · ICChocolate{% endblock %}
 {% block breadcrumb %}Crear ubicación{% endblock %}
-{% block page_label %}SOLO DUEÑO{% endblock %}
-{% block page_heading %}Crear ubicación{% endblock %}
-{% block page_description %}Agrega un contenedor o zona para organizar las existencias.{% endblock %}
+{% block page_label %}CATÁLOGO{% endblock %}
+{% block page_heading %}Inventario{% endblock %}
+{% block page_description %}Organiza los contenedores y zonas de tu repostería.{% endblock %}
 {% block content %}
-<div class="panel form-panel narrow"><form method="post" class="form-stack">{% csrf_token %}{% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</div>{% endfor %}<button class="button button-dark" type="submit">Crear ubicación →</button></form></div>
+<div class="modal-backdrop">
+  <a class="modal-shade" data-modal-close href="{% url 'inventory' %}" aria-label="Cerrar ventana"></a>
+  <section class="modal-card location-modal" role="dialog" aria-modal="true" aria-labelledby="location-title">
+    <div class="modal-header"><div><span class="eyebrow">SOLO DUEÑO</span><h2 id="location-title">Crear ubicación</h2><p>Agrega un contenedor o zona para organizar las existencias.</p></div><a class="modal-close" data-modal-close href="{% url 'inventory' %}" aria-label="Cerrar ventana">×</a></div>
+    <form method="post" class="form-stack">{% csrf_token %}
+      {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
+      {% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</div>{% endfor %}
+      <div class="modal-actions"><a class="button button-outline" data-modal-close href="{% url 'inventory' %}">Cancelar</a><button class="button button-dark" type="submit">Crear ubicación →</button></div>
+    </form>
+  </section>
+</div>
 {% endblock %}

@@ -22,7 +22,7 @@
       <div class="sidebar-section-label">ADMINISTRACIÓN</div>
       <nav aria-label="Administración" class="nav-list">
         <a href="{% url 'product_new' %}" data-modal-open class="nav-link {% if page == 'product_new' %}active{% endif %}" {% if page == 'product_new' %}aria-current="page"{% endif %}>{% include 'inventory/ui_icon.html' with icon='product' %} Crear producto</a>
-        <a href="{% url 'location_new' %}" class="nav-link {% if page == 'location_new' %}active{% endif %}" {% if page == 'location_new' %}aria-current="page"{% endif %}>{% include 'inventory/ui_icon.html' with icon='location' %} Crear ubicación</a>
+        <a href="{% url 'location_new' %}" data-modal-open class="nav-link {% if page == 'location_new' %}active{% endif %}" {% if page == 'location_new' %}aria-current="page"{% endif %}>{% include 'inventory/ui_icon.html' with icon='location' %} Crear ubicación</a>
       </nav>
       {% endif %}
       <div class="sidebar-bottom">
@@ -34,7 +34,7 @@
     <div class="workspace">
       <header class="topbar"><div class="breadcrumb">ICChocolate <span>/</span> {% block breadcrumb %}Panel de control{% endblock %}</div><div class="topbar-right"><span class="status-dot" aria-hidden="true"></span> Inventario activo <span class="topbar-separator"></span> {{ request.user.profile.alias }}</div></header>
       <div class="page-heading"><div><span class="eyebrow">{% block page_label %}ICCHOCOLATE{% endblock %}</span><h1>{% block page_heading %}Panel de control{% endblock %}</h1><p>{% block page_description %}{% endblock %}</p></div><div class="heading-actions">{% block page_actions %}{% endblock %}</div></div>
-      <main class="main">
+      <main class="main page-{{ page }}">
         {% if messages %}<div class="messages" role="status">{% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
         {% block content %}{% endblock %}
       </main>
