@@ -1,5 +1,7 @@
 .git
 .env
+firmware/ICChocolate_DHT11/secrets.h
+backups
 __pycache__
 *.pyc
 db.sqlite3

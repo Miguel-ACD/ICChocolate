@@ -120,3 +120,21 @@ class MovementLine(models.Model):
             models.CheckConstraint(condition=~Q(delta=0), name="movement_line_nonzero"),
             models.UniqueConstraint(fields=["movement", "presentation", "location"], name="unique_movement_position"),
         ]
+
+
+class SensorReading(models.Model):
+    """One averaged DHT11 transmission; reading_id makes HTTP retries harmless."""
+
+    reading_id = models.UUIDField(unique=True)
+    temperature_c = models.DecimalField(max_digits=4, decimal_places=2)
+    humidity_percent = models.DecimalField(max_digits=5, decimal_places=2)
+    sample_count = models.PositiveSmallIntegerField()
+    received_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-received_at", "-pk"]
+        constraints = [
+            models.CheckConstraint(condition=Q(temperature_c__gte=0, temperature_c__lte=50), name="dht_temperature_range"),
+            models.CheckConstraint(condition=Q(humidity_percent__gte=20, humidity_percent__lte=90), name="dht_humidity_range"),
+            models.CheckConstraint(condition=Q(sample_count__gte=1, sample_count__lte=4), name="dht_sample_count_range"),
+        ]

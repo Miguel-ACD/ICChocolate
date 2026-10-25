@@ -1,4 +1,5 @@
 {% extends 'inventory/base.html' %}
+{% load static %}
 {% block title %}Inventario · ICChocolate{% endblock %}
 {% block breadcrumb %}Inventario{% endblock %}
 {% block page_label %}{% endblock %}
@@ -9,4 +10,13 @@
 <form class="searchbar" method="get"><input name="q" value="{{ query }}" placeholder="Buscar producto, código o ubicación" aria-label="Buscar inventario"><button type="submit">Buscar →</button></form>
 <div class="panel table-panel data-table"><table><thead><tr><th>Producto / presentación</th><th>Código</th><th>Una unidad</th><th>Ubicación</th><th class="numeric">Disponible</th></tr></thead><tbody>{% for stock in stocks %}<tr><td><strong>{{ stock.presentation.product.name }}</strong><small>{{ stock.presentation.name }}</small></td><td>{{ stock.presentation.code }}</td><td>{{ stock.presentation.unit_description }}</td><td>{{ stock.location.name }}</td><td class="numeric"><span class="quantity">{{ stock.quantity }}</span></td></tr>{% empty %}<tr><td colspan="5" class="empty">No hay existencias que coincidan. Crea un producto o registra una compra.</td></tr>{% endfor %}</tbody></table></div>
 {% include 'inventory/pagination.html' %}
+<section class="sensor-card panel" data-sensor-url="{% url 'sensor_latest' %}" aria-label="Sensor de temperatura y humedad">
+  <div class="sensor-card-heading"><span class="eyebrow">AMBIENTE</span><span class="sensor-badge" id="sensor-status">Esperando sensor</span></div>
+  <h2>Sensor DHT11</h2>
+  <div class="sensor-temperature"><strong id="sensor-temperature">--</strong><span>°C</span></div>
+  <div class="sensor-humidity">Humedad relativa <strong id="sensor-humidity">-- %</strong></div>
+  <p class="sensor-updated" id="sensor-updated">Última actualización: sin lecturas</p>
+  <p class="sensor-communication" id="sensor-communication" role="status">Esperando sensor</p>
+</section>
+<script src="{% static 'inventory/sensor.js' %}" defer></script>
 {% endblock %}
