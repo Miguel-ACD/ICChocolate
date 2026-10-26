@@ -1,16 +1,23 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <NetworkClientSecure.h>
+#include <time.h>
 #include <DHT.h>
 #include <esp_system.h>
 #include <math.h>
+#include "dns_addresses.h"
 #include "secrets.h"
+#include "letsencrypt_roots.h"
+#ifndef REMOTE_INGEST_URL
+#define REMOTE_INGEST_URL ""
+#endif
 
 constexpr uint8_t DHT_PIN = 4;
 constexpr uint8_t ATTEMPTS = 4;
 constexpr unsigned long SAMPLE_GAP_MS = 10000;
 constexpr unsigned long CYCLE_MS = 60000;
 constexpr unsigned long WIFI_TIMEOUT_MS = 12000;
-constexpr char INGEST_URL[] = "http://192.168.18.244:8000/api/sensor/lecturas/";
+constexpr char LOCAL_INGEST_URL[] = "http://192.168.18.244:8000/api/sensor/lecturas/";
 
 DHT dht(DHT_PIN, DHT11);
 
@@ -47,26 +54,98 @@ bool connectWiFi() {
   return true;
 }
 
-bool sendReading(const String &body) {
-  if (!connectWiFi()) return false;
-  HTTPClient http;
-  http.setTimeout(8000);
-  if (!http.begin(INGEST_URL)) {
-    Serial.println("No se pudo iniciar HTTP.");
+bool ensureClock() {
+  if (time(nullptr) >= 1700000000) return true;
+  configTime(0, 0, "pool.ntp.org", "time.google.com");
+  unsigned long started = millis();
+  while (time(nullptr) < 1700000000 && millis() - started < 12000) delay(250);
+  if (time(nullptr) < 1700000000) {
+    Serial.println("Sin hora de red; se reintentará HTTPS en el próximo ciclo.");
     return false;
   }
+  return true;
+}
+
+bool sendRemoteReading(const String &body) {
+  String url = REMOTE_INGEST_URL;
+  if (!url.startsWith("https://")) {
+    Serial.println("La URL remota debe usar HTTPS.");
+    return false;
+  }
+  int pathStart = url.indexOf('/', 8);
+  String authority = pathStart < 0 ? url.substring(8) : url.substring(8, pathStart);
+  String path = pathStart < 0 ? "/" : url.substring(pathStart);
+  int colon = authority.lastIndexOf(':');
+  String host = colon < 0 ? authority : authority.substring(0, colon);
+  uint16_t port = colon < 0 ? 443 : static_cast<uint16_t>(authority.substring(colon + 1).toInt());
+  if (host.isEmpty() || port == 0) return false;
+
+  IPAddress candidates[6];
+  uint8_t count = resolveAllIPv4(host, candidates, 6);
+  if (count == 0) {
+    Serial.println("DNS completo no disponible; se probará el resolver integrado.");
+    if (WiFi.hostByName(host.c_str(), candidates[0])) count = 1;
+  }
+  if (count == 0) {
+    Serial.println("Funnel no devolvió direcciones IPv4.");
+    return false;
+  }
+  String headers = String("POST ") + path + " HTTP/1.1\r\nHost: " + host +
+                   "\r\nAuthorization: Bearer " + DEVICE_TOKEN +
+                   "\r\nContent-Type: application/json\r\nContent-Length: " + String(body.length()) +
+                   "\r\nConnection: close\r\n\r\n";
+  for (uint8_t i = 0; i < count; ++i) {
+    NetworkClientSecure client;
+    client.setHandshakeTimeout(8);
+    client.setTimeout(8000);
+    Serial.printf("Funnel %u/%u: %s; memoria libre: %u bytes.\n",
+                  i + 1, count, candidates[i].toString().c_str(), ESP.getFreeHeap());
+    if (!client.connect(candidates[i], port, host.c_str(), LETS_ENCRYPT_ROOTS, nullptr, nullptr)) {
+      char detail[128] = {};
+      int code = client.lastError(detail, sizeof(detail));
+      Serial.printf("Falló TLS: %d %s.\n", code, detail);
+      client.stop();
+      continue;
+    }
+    if (client.print(headers) != headers.length() || client.print(body) != body.length()) {
+      Serial.println("No se pudo enviar la solicitud HTTPS.");
+      client.stop();
+      continue;
+    }
+    String statusLine = client.readStringUntil('\n');
+    client.stop();
+    int firstSpace = statusLine.indexOf(' ');
+    int status = firstSpace < 0 ? 0 : statusLine.substring(firstSpace + 1).toInt();
+    if (status == 201 || status == 200) {
+      Serial.printf("Lectura recibida por ICChocolate (HTTP %d).\n", status);
+      return true;
+    }
+    if (status >= 400 && status < 500) {
+      Serial.printf("El servidor rechazó la lectura: HTTP %d.\n", status);
+      return false;
+    }
+    Serial.printf("Funnel no respondió correctamente: %s\n", statusLine.c_str());
+  }
+  return false;
+}
+
+bool sendReading(const String &body) {
+  if (!connectWiFi()) return false;
+  if (REMOTE_INGEST_URL[0] != '\0') {
+    if (!ensureClock()) return false;
+    return sendRemoteReading(body);
+  }
+  HTTPClient http;
+  http.setTimeout(8000);
+  if (!http.begin(LOCAL_INGEST_URL)) return false;
   http.addHeader("Content-Type", "application/json");
   http.addHeader("Authorization", String("Bearer ") + DEVICE_TOKEN);
   int status = http.POST(body);
-  if (status == 201 || status == 200) {
-    Serial.printf("Lectura recibida por ICChocolate (HTTP %d).\n", status);
-    http.end();
-    return true;
-  }
-  if (status < 0) Serial.printf("Error de conexión HTTP: %s\n", http.errorToString(status).c_str());
-  else Serial.printf("El servidor rechazó la lectura: HTTP %d, %s\n", status, http.getString().c_str());
+  if (status == 201 || status == 200) Serial.printf("Lectura recibida por ICChocolate (HTTP %d).\n", status);
+  else if (status < 0) Serial.printf("Error de conexión HTTP: %s\n", http.errorToString(status).c_str());
+  else Serial.printf("El servidor rechazó la lectura: HTTP %d.\n", status);
   http.end();
-  return false;
+  return status == 201 || status == 200;
 }
 
 void setup() {

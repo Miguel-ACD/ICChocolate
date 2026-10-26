@@ -25,14 +25,19 @@ La recepción es `POST /api/sensor/lecturas/` con JSON (`reading_id` UUID, `temp
 
 Para cargar el ESP32 desde Arduino IDE:
 
-1. Instala **esp32 by Espressif Systems** en el Gestor de tarjetas. En el Gestor de bibliotecas instala **DHT sensor library by Adafruit** y **Adafruit Unified Sensor**.
-2. Abre exactamente `firmware/ICChocolate_DHT11/ICChocolate_DHT11.ino`. El archivo local `secrets.h` ya contiene el Wi-Fi y token de este equipo; está excluido de Git.
+1. Instala **esp32 by Espressif Systems**, **DHT sensor library by Adafruit** y **Adafruit Unified Sensor**.
+2. Abre `firmware/ICChocolate_DHT11/ICChocolate_DHT11.ino`. El archivo local `secrets.h` contiene el Wi-Fi, el token y `REMOTE_INGEST_URL`; está excluido de Git. No publiques ese archivo.
 3. Selecciona **ESP32 Dev Module** y el puerto USB de la placa. Conecta DHT11: DATA a GPIO4 (D4), VCC a 3V3 y GND a GND. Carga el sketch y abre el monitor serie a **115200 baudios**.
-4. El ESP32 toma cuatro muestras separadas por 10 segundos en cada ciclo de 60 segundos y envía el promedio de las válidas a `http://192.168.18.244:8000/`. Tras los primeros 30 segundos aproximadamente, busca **Lectura recibida por ICChocolate** en el monitor. Abre <http://192.168.18.244:8000/inventario/> con tu sesión y espera hasta 15 segundos para ver el recuadro actualizado.
+4. El ESP32 toma cuatro muestras separadas por 10 segundos en cada ciclo de 60 segundos y envía el promedio de las válidas por HTTPS. Al arrancar sincroniza la hora para validar el certificado. Busca **Lectura recibida por ICChocolate (HTTP 201)** en el monitor. Abre <http://localhost:8001/inventario/> con tu sesión; el recuadro se actualiza cada 15 segundos.
 
-La IP Wi-Fi de la PC se comprobó como `192.168.18.244/24`. Docker publica solo `192.168.18.244:8000` y la regla de Windows **ICChocolate ESP32 DHT11** permite únicamente TCP 8000 desde `192.168.18.0/24` en el perfil público. Si cambia la IP o subred, deben actualizarse el destino del sketch, `compose.yaml`, `DJANGO_ALLOWED_HOSTS` en `.env` y esa regla local. El token viaja por HTTP dentro de esta red local; no uses este endpoint como servicio público sin HTTPS.
+### Envío entre redes
 
-La suite automatizada genera mediciones simuladas **solo en una base temporal de pruebas**. No se han insertado lecturas simuladas en la base de uso. Una lectura real se confirmará cuando el ESP32 cargado envíe su primer POST.
+El ESP32 usa la URL pública HTTPS de **Tailscale Funnel** definida en `REMOTE_INGEST_URL`. Valida el certificado TLS y prueba las direcciones IPv4 que publica Funnel si uno de sus relays falla. El Funnel termina TLS en la PC y entrega las peticiones a `127.0.0.1:8002`. El contenedor `sensor-gateway` acepta únicamente `POST /api/sensor/lecturas/` y lo reenvía a la web. Django exige el token del sensor. Inventario y el resto de la aplicación no se publican por Funnel: se consultan localmente en <http://localhost:8001/inventario/>.
+
+Para esta instalación personal, la URL de Funnel es `https://miguellenovo.tail15a9af.ts.net`. Si se instala en otra PC, cambia la URL en el `secrets.h` local y vuelve a cargar el firmware. La PC puede cambiar de red sin modificar el firmware; debe permanecer encendida con Docker Desktop y Tailscale conectados. El ESP32 puede usar otra red con salida a Internet. Si cambia el Wi-Fi al que se conecta el ESP32, actualiza `WIFI_SSID` y `WIFI_PASSWORD` en `secrets.h` y vuelve a cargarlo. Funnel se configuró para seguir activo en segundo plano, y los contenedores usan `restart: unless-stopped`.
+
+`config/lan_bridge.py` y la URL HTTP local del firmware se conservan como alternativa de red local. El puente solo sirve en la subred `192.168.18.0/24` con la PC en `192.168.18.244`; no es necesario para el envío HTTPS entre redes. Si no se define `REMOTE_INGEST_URL`, el firmware usa esa URL local.
+La suite automatizada genera mediciones simuladas **solo en una base temporal de pruebas**. La base de uso recibió lecturas reales del ESP32 por HTTPS; no se insertaron mediciones simuladas en ella.
 
 ## Iniciar en Windows con Docker Desktop
 
@@ -43,16 +48,17 @@ La suite automatizada genera mediciones simuladas **solo en una base temporal de
    docker compose build
    docker compose run --rm web python manage.py migrate --noinput
    docker compose run --rm web python manage.py seed_demo
-   docker compose up -d web
+   docker compose up -d web sensor-gateway
    ```
 
-3. Abre <http://localhost:8000>. Usa las cuentas definidas por `DEMO_OWNER_EMAIL`, `DEMO_OWNER_PASSWORD`, `DEMO_EMPLOYEE_EMAIL` y `DEMO_EMPLOYEE_PASSWORD` en tu `.env` local.
-4. Para detener sin borrar datos: `docker compose down`. Para iniciar de nuevo: `docker compose up -d web`. **No** uses `docker compose down -v` si quieres conservar los datos.
+3. Abre <http://localhost:8001>. Usa las cuentas definidas por `DEMO_OWNER_EMAIL`, `DEMO_OWNER_PASSWORD`, `DEMO_EMPLOYEE_EMAIL` y `DEMO_EMPLOYEE_PASSWORD` en tu `.env` local.
+4. Para detener sin borrar datos: `docker compose down`. Para iniciar de nuevo: `docker compose up -d web sensor-gateway`. **No** uses `docker compose down -v` si quieres conservar los datos.
 
 `seed_demo` es idempotente: repetirlo no duplica cuentas ni existencias iniciales. Las contraseñas de cuentas ya existentes no cambian al repetirlo.
 
-La web escucha en `192.168.18.244:8000` para el ESP32 de la red local; PostgreSQL no publica un puerto. Estas credenciales son exclusivas de la demo local. Antes de una futura publicación con acceso externo se deberá configurar HTTPS, dominio, secretos nuevos y políticas de operación.
+La web escucha en `127.0.0.1:8001`. El gateway del sensor escucha en `127.0.0.1:8002`, y Tailscale Funnel publica solo esa entrada HTTPS. PostgreSQL no publica un puerto. Si se quiere usar el puente local anterior, se inicia aparte con `python config/lan_bridge.py` mientras la PC mantiene la IP indicada.
 
+Para activar Funnel en una instalación nueva de Tailscale: `tailscale funnel --bg --yes 8002`. La cuenta debe permitir Funnel. Comprueba `tailscale funnel status` y coloca la URL HTTPS resultante en `REMOTE_INGEST_URL` del `secrets.h` local. La URL es pública; conserva el token privado y cámbialo si se expone. Para detener la publicación: `tailscale funnel reset`.
 ## Pruebas
 
 ```powershell
@@ -87,7 +93,7 @@ inventory/templates/inventory/  interfaz HTML
 inventory/static/inventory/     estilo visual y apertura de ventanas
 inventory/management/commands/  carga idempotente y trabajador reservado
 inventory/tests/                pruebas automáticas
-compose.yaml                    web + PostgreSQL; trabajador futuro opcional
+compose.yaml                    web + PostgreSQL + gateway; trabajador futuro opcional
 ```
 
 La lógica de stock se concentra en `register_movement`. Las futuras entradas desde OCR deberán terminar en el mismo servicio **después** de revisión humana. La ingesta ESP32 usa `inventory/sensors.py` y `SensorReading`, sin modificar existencias ni movimientos. El proceso `worker` queda reservado. La elección y prueba de OCR, alertas, chatbot, conversiones, reversos, fotografías y despliegue AWS corresponde a próximas entregas.
