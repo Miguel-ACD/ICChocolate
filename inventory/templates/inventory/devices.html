@@ -1,0 +1,11 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Dispositivos · ICChocolate{% endblock %}
+{% block breadcrumb %}Dispositivos{% endblock %}
+{% block page_label %}ADMINISTRACIÓN{% endblock %}
+{% block page_heading %}Dispositivos{% endblock %}
+{% block page_description %}Cada ESP32 tiene token propio y una zona actual. Las lecturas antiguas conservan su asignación.{% endblock %}
+{% block page_actions %}<a class="button button-dark" href="{% url 'device_new' %}">+ ESP32</a>{% endblock %}
+{% block content %}<div class="panel table-panel data-table"><table><thead><tr><th>Código</th><th>Zona actual</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+{% for device, assignment in device_rows %}<tr><td>{{ device.code }}</td><td>{% if assignment %}{{ assignment.location.name }}{% else %}Sin zona{% endif %}</td><td>{% if device.active %}Activo{% else %}Inactivo{% endif %}</td><td><a href="{% url 'device_assign' device.pk %}">Asignar zona</a> · <a href="{% url 'monitoring' %}?device={{ device.code|urlencode }}">Historial</a><form method="post" action="{% url 'device_toggle' device.pk %}" style="display:inline">{% csrf_token %}<button type="submit">{% if device.active %}Desactivar{% else %}Activar{% endif %}</button></form><form method="post" action="{% url 'device_rotate' device.pk %}" style="display:inline">{% csrf_token %}<button type="submit">Rotar token</button></form></td></tr>
+{% empty %}<tr><td colspan="4">No hay dispositivos.</td></tr>{% endfor %}
+</tbody></table></div>{% endblock %}

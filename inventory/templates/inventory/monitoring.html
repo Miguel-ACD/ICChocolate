@@ -1,0 +1,21 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Monitoreo · ICChocolate{% endblock %}
+{% block breadcrumb %}Monitoreo{% endblock %}
+{% block page_label %}AMBIENTE{% endblock %}
+{% block page_heading %}Monitoreo{% endblock %}
+{% block page_description %}Las lecturas describen la zona del sensor, no la temperatura interna del chocolate.{% endblock %}
+{% block content %}
+<form method="get" class="searchbar"><label for="device-select">Dispositivo</label><select id="device-select" name="device">{% for item in devices %}<option value="{{ item.code }}" {% if device.pk == item.pk %}selected{% endif %}>{{ item.code }}</option>{% endfor %}</select><button type="submit">Ver historial</button></form>
+{% if device %}
+<section class="panel" aria-label="Estado de {{ device.code }}">
+  <h2>{{ device.code }} · {% if assignment %}{{ assignment.location.name }}{% else %}Sin zona actual{% endif %}</h2>
+  <p>Comunicación: {% if communicating %}reciente{% elif latest_cycle %}sin datos recientes{% else %}sin primera lectura{% endif %}. Última medición válida: {% if fresh %}reciente{% elif latest_valid %}antigua{% else %}sin primera lectura{% endif %}.</p>
+  {% if latest_valid %}<p>{{ latest_valid.temperature_c }} °C · {{ latest_valid.humidity_percent }} % HR, recibido {{ latest_valid.received_at|date:'d/m/Y H:i:s' }} en {{ latest_valid.assignment.location.name }}.</p>{% endif %}
+  {% if latest_cycle.status == 'INVALIDO' %}<p>Último ciclo inválido: {{ latest_cycle.sample_count }} de 4 muestras válidas. La medición válida anterior conserva su fecha.</p>{% endif %}
+</section>
+<div class="panel table-panel data-table"><table><thead><tr><th>Recepción</th><th>Ciclo</th><th>Zona medida</th><th>Temperatura</th><th>Humedad</th><th>Muestras</th></tr></thead><tbody>
+{% for cycle in cycles %}<tr><td>{{ cycle.received_at|date:'d/m/Y H:i:s' }}</td><td>{{ cycle.get_status_display }}</td><td>{% if cycle.assignment %}{{ cycle.assignment.location.name }}{% else %}Sin asignación histórica{% endif %}</td><td>{% if cycle.temperature_c != None %}{{ cycle.temperature_c }} °C{% else %}—{% endif %}</td><td>{% if cycle.humidity_percent != None %}{{ cycle.humidity_percent }} %{% else %}—{% endif %}</td><td>{{ cycle.sample_count }}/4</td></tr>
+{% empty %}<tr><td colspan="6">Sin ciclos recibidos.</td></tr>{% endfor %}
+</tbody></table></div>
+{% else %}<div class="panel">No hay dispositivo seleccionado.</div>{% endif %}
+{% endblock %}

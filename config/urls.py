@@ -1,6 +1,6 @@
 from django.urls import include, path
 from inventory import views
-from inventory import sensors
+from inventory import sensors, device_views
 
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
@@ -8,7 +8,15 @@ urlpatterns = [
     path("accounts/logout/", views.logout_view, name="logout"),
     path("accounts/alias/", views.alias_settings, name="alias_settings"),
     path("inventario/", views.inventory_list, name="inventory"),
+    path("monitoreo/", device_views.monitoring, name="monitoring"),
+    path("dispositivos/", device_views.device_list, name="device_list"),
+    path("dispositivos/nuevo/", device_views.device_new, name="device_new"),
+    path("dispositivos/<int:device_id>/asignar/", device_views.device_assign, name="device_assign"),
+    path("dispositivos/<int:device_id>/activar/", device_views.device_toggle, name="device_toggle"),
+    path("dispositivos/<int:device_id>/rotar-token/", device_views.device_rotate, name="device_rotate"),
     path("api/sensor/lecturas/", sensors.sensor_ingest, name="sensor_ingest"),
+    path("api/v1/dispositivos/me/ciclos", sensors.sensor_cycle_ingest, name="sensor_cycle_ingest"),
+    path("api/sensor/historial/", sensors.sensor_history, name="sensor_history"),
     path("api/sensor/ultima/", sensors.sensor_latest, name="sensor_latest"),
     path("movimientos/nuevo/", views.movement_new, name="movement_new"),
     path("movimientos/confirmar/", views.movement_confirm, name="movement_confirm"),

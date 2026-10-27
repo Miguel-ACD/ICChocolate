@@ -5,9 +5,12 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
-from inventory.models import Equivalence, Location, Presentation, Product, UserProfile
+from django.conf import settings
+from django.utils import timezone
+from inventory.models import Equivalence, Location, Presentation, Product, SensorAssignment, SensorDevice, SensorReading, UserProfile
 from inventory.services import register_movement
 from inventory.phase2 import create_equivalence
+from inventory.device_service import register_device
 
 
 class Command(BaseCommand):
@@ -62,4 +65,17 @@ class Command(BaseCommand):
             if not Equivalence.objects.filter(source=source, target=target).exists():
                 create_equivalence(user=owner, source_id=source.pk, target_id=target.pk,
                                    source_units=source_units, target_units=target_units)
+        device = SensorDevice.objects.filter(code="ESP32-01").first()
+        if device is None:
+            if not settings.SENSOR_DEVICE_TOKEN:
+                raise CommandError("Configura SENSOR_DEVICE_TOKEN antes de registrar el sensor.")
+            oldest = SensorReading.objects.order_by("received_at").first()
+            device, _ = register_device(user=owner, code="ESP32-01", location_id=warehouse.pk,
+                                        token=settings.SENSOR_DEVICE_TOKEN,
+                                        started_at=oldest.received_at if oldest else timezone.now())
+        assignment = SensorAssignment.objects.filter(device=device, ended_at__isnull=True).first()
+        if assignment is None:
+            assignment = SensorAssignment.objects.create(device=device, location=warehouse,
+                                                         started_at=timezone.now())
+        SensorReading.objects.filter(device__isnull=True).update(device=device, assignment=assignment)
         self.stdout.write(self.style.SUCCESS("Demo lista: dos usuarios y cinco posiciones iniciales."))

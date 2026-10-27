@@ -174,19 +174,56 @@ class MovementLine(models.Model):
         ]
 
 
-class SensorReading(models.Model):
-    """One averaged DHT11 transmission; reading_id makes HTTP retries harmless."""
+class SensorDevice(models.Model):
+    code = models.CharField(max_length=40, unique=True)
+    token_hash = models.CharField(max_length=64, unique=True)
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
-    reading_id = models.UUIDField(unique=True)
-    temperature_c = models.DecimalField(max_digits=4, decimal_places=2)
-    humidity_percent = models.DecimalField(max_digits=5, decimal_places=2)
+    def __str__(self):
+        return self.code
+
+
+class SensorAssignment(models.Model):
+    device = models.ForeignKey(SensorDevice, on_delete=models.PROTECT, related_name="assignments")
+    location = models.ForeignKey(Location, on_delete=models.PROTECT)
+    started_at = models.DateTimeField()
+    ended_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["device"], condition=Q(ended_at__isnull=True), name="one_current_sensor_assignment"),
+            models.CheckConstraint(condition=Q(ended_at__isnull=True) | Q(ended_at__gt=models.F("started_at")), name="sensor_assignment_time_order"),
+        ]
+
+
+class SensorReading(models.Model):
+    """One physical cycle, valid or invalid; duplicates are scoped to its device."""
+
+    class Status(models.TextChoices):
+        VALID = "VALIDO", "Válido"
+        INVALID = "INVALIDO", "Inválido"
+
+    reading_id = models.UUIDField()
+    device = models.ForeignKey(SensorDevice, on_delete=models.PROTECT, null=True, blank=True, related_name="cycles")
+    assignment = models.ForeignKey(SensorAssignment, on_delete=models.PROTECT, null=True, blank=True)
+    status = models.CharField(max_length=8, choices=Status.choices, default=Status.VALID)
+    temperature_c = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True)
+    humidity_percent = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     sample_count = models.PositiveSmallIntegerField()
+    error_code = models.CharField(max_length=40, blank=True)
+    cycle_started_at = models.DateTimeField(null=True, blank=True)
     received_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         ordering = ["-received_at", "-pk"]
         constraints = [
-            models.CheckConstraint(condition=Q(temperature_c__gte=0, temperature_c__lte=50), name="dht_temperature_range"),
-            models.CheckConstraint(condition=Q(humidity_percent__gte=20, humidity_percent__lte=90), name="dht_humidity_range"),
-            models.CheckConstraint(condition=Q(sample_count__gte=1, sample_count__lte=4), name="dht_sample_count_range"),
+            models.UniqueConstraint(fields=["device", "reading_id"], name="unique_sensor_device_cycle"),
+            models.CheckConstraint(condition=Q(temperature_c__isnull=True) | Q(temperature_c__gte=0, temperature_c__lte=50), name="dht_temperature_range"),
+            models.CheckConstraint(condition=Q(humidity_percent__isnull=True) | Q(humidity_percent__gte=20, humidity_percent__lte=90), name="dht_humidity_range"),
+            models.CheckConstraint(condition=Q(sample_count__gte=0, sample_count__lte=4), name="dht_sample_count_range"),
+            models.CheckConstraint(condition=(
+                Q(status="VALIDO", sample_count=4, temperature_c__isnull=False, humidity_percent__isnull=False, error_code="") |
+                Q(status="INVALIDO", sample_count__lt=4, temperature_c__isnull=True, humidity_percent__isnull=True)
+            ), name="sensor_cycle_state_consistent"),
         ]

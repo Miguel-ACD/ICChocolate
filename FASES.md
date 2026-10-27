@@ -58,3 +58,11 @@ La fase 2 añadió equivalencias dirigidas, conversiones atómicas, reversos com
 Se creó un respaldo privado de PostgreSQL antes de aplicar la migración `0005`; no se modificó ni borró el volumen. La prueba `scripts/verify_phase2.ps1` pasó: 55 pruebas automatizadas en una base temporal de PostgreSQL, formularios y permisos HTTP para ambos roles, reinicio y comparación de datos. La base habitual siguió con 6 movimientos, 59 lecturas y 57 unidades; contiene 2 equivalencias activas. Web y DB están activos localmente; gateway y Funnel siguen apagados.
 
 Alcance pendiente para fases posteriores: múltiples renglones de una foto y confirmación conjunta en fase 5; identidad y zonas de dispositivos en fase 3; alertas en fase 4. La fase 2 no declara esos recorridos completados.
+
+## Cierre de la fase 3 (27 de octubre de 2026)
+
+Se incorporaron identidad y token por dispositivo, asignación histórica de zona, ciclos válidos e inválidos, historial, estado de comunicación y administración para el dueño. La ruta v1 convive con la anterior. Las 59 lecturas anteriores quedaron vinculadas a ESP32-01 sin cambiar sus valores. Antes de migrar se creó un respaldo privado; no se eliminó el volumen.
+
+`scripts/verify_phase3.ps1` pasó con 65 pruebas automatizadas en PostgreSQL temporal, accesos y permisos HTTP de ambos roles, gateway con rechazo de token incorrecto, reinicio y persistencia. El firmware compiló y el token privado del firmware, servidor y base coincide sin exponer su valor. Funnel HTTPS está activo y solo publica el gateway; Inventario devuelve 404 y un token falso devuelve 401.
+
+El firmware v1 se grabó y verificó en el ESP32 físico. Tras cambiar a otro puerto USB por reinicios de alimentación, Windows lo detectó en COM30. El monitor serie registró cuatro muestras reales y promedio de 28.17 °C y 60.88 % HR; Funnel devolvió HTTP 201. PostgreSQL guardó el ciclo nuevo como `VALIDO`, `4/4`, `ESP32-01`, zona Almacén, a las 14:56:27 de Lima (19:56:27 UTC), con esos mismos valores. El conteo pasó de 59 ciclos históricos a 61 al comprobarlo; las pruebas simuladas permanecieron en la base temporal. La fase queda cerrada tras la verificación final y el commit/push.

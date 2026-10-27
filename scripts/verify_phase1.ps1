@@ -69,5 +69,11 @@ docker compose restart db web | Out-Null
 Assert-True ($LASTEXITCODE -eq 0) 'No se pudo reiniciar ICChocolate.'
 Wait-ForHealth
 $after = Get-InventorySnapshot
-Assert-True ($before -eq $after) "Los conteos cambiaron tras el reinicio: $before -> $after"
-Write-Output "Fase 1 OK: pruebas, sesiones, permisos y persistencia ($after)."
+$beforeParts = $before.Split(':')
+$afterParts = $after.Split(':')
+Assert-True ($beforeParts.Count -eq 4 -and $afterParts.Count -eq 4) 'Snapshot de PostgreSQL incorrecto.'
+foreach ($index in @(0, 1, 3)) {
+    Assert-True ($beforeParts[$index] -eq $afterParts[$index]) "Inventario cambió tras el reinicio: $before -> $after"
+}
+Assert-True ([int]$afterParts[2] -ge [int]$beforeParts[2]) "Se perdieron ciclos del sensor: $before -> $after"
+Write-Output "Fase 1 OK: pruebas, sesiones, permisos y persistencia ($before -> $after)."

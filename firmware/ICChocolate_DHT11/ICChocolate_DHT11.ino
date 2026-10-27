@@ -6,6 +6,7 @@
 #include <esp_system.h>
 #include <math.h>
 #include "dns_addresses.h"
+#include "sensor_math.h"
 #include "secrets.h"
 #include "letsencrypt_roots.h"
 #ifndef REMOTE_INGEST_URL
@@ -17,7 +18,7 @@ constexpr uint8_t ATTEMPTS = 4;
 constexpr unsigned long SAMPLE_GAP_MS = 10000;
 constexpr unsigned long CYCLE_MS = 60000;
 constexpr unsigned long WIFI_TIMEOUT_MS = 12000;
-constexpr char LOCAL_INGEST_URL[] = "http://192.168.18.244:8000/api/sensor/lecturas/";
+constexpr char LOCAL_INGEST_URL[] = "http://192.168.18.244:8000/api/v1/dispositivos/me/ciclos";
 
 DHT dht(DHT_PIN, DHT11);
 
@@ -159,8 +160,9 @@ void setup() {
 
 void loop() {
   unsigned long cycleStart = millis();
-  float temperatureSum = 0;
-  float humiditySum = 0;
+  time_t cycleEpoch = time(nullptr);
+  float temperatures[ATTEMPTS] = {};
+  float humidities[ATTEMPTS] = {};
   uint8_t valid = 0;
 
   for (uint8_t i = 0; i < ATTEMPTS; ++i) {
@@ -169,31 +171,40 @@ void loop() {
     if (isnan(temperature) || isnan(humidity) || temperature < 0 || temperature > 50 || humidity < 20 || humidity > 90) {
       Serial.printf("Intento %u/4: lectura inválida del DHT11.\n", i + 1);
     } else {
-      temperatureSum += temperature;
-      humiditySum += humidity;
+      temperatures[valid] = temperature;
+      humidities[valid] = humidity;
       ++valid;
       Serial.printf("Intento %u/4: %.1f °C, %.1f %% HR.\n", i + 1, temperature, humidity);
     }
     if (i + 1 < ATTEMPTS) delay(SAMPLE_GAP_MS);
   }
 
-  if (valid == 0) {
-    Serial.println("Ninguna muestra válida; no se enviará una lectura inventada.");
+  String cycleId = newReadingId();
+  String body = String("{\"version\":1,\"ciclo_id\":\"") + cycleId + "\",";
+  if (valid == ATTEMPTS) {
+    float meanTemperature = averageFour(temperatures[0], temperatures[1], temperatures[2], temperatures[3]);
+    float meanHumidity = averageFour(humidities[0], humidities[1], humidities[2], humidities[3]);
+    body += String("\"estado\":\"VALIDO\",\"muestras_validas\":4,\"temperatura_c\":") +
+            String(meanTemperature, 2) + ",\"humedad_pct\":" + String(meanHumidity, 2);
+    Serial.printf("Promedio de 4 muestras: %.2f °C, %.2f %% HR. Enviando...\n", meanTemperature, meanHumidity);
   } else {
-    float meanTemperature = temperatureSum / valid;
-    float meanHumidity = humiditySum / valid;
-    String readingId = newReadingId();
-    String body = String("{\"reading_id\":\"") + readingId +
-                  "\",\"temperature_c\":" + String(meanTemperature, 2) +
-                  ",\"humidity_percent\":" + String(meanHumidity, 2) +
-                  ",\"sample_count\":" + String(valid) + "}";
-    Serial.printf("Promedio de %u muestra(s): %.2f °C, %.2f %% HR. Enviando...\n", valid, meanTemperature, meanHumidity);
-    for (uint8_t retry = 1; retry <= 3; ++retry) {
-      if (sendReading(body)) break;
-      if (retry < 3) {
-        Serial.printf("Reintento HTTP %u/3 en 5 segundos.\n", retry + 1);
-        delay(5000);
-      }
+    body += String("\"estado\":\"INVALIDO\",\"muestras_validas\":") + String(valid) +
+            ",\"temperatura_c\":null,\"humedad_pct\":null,\"error_codigo\":\"SENSOR_LECTURA\"";
+    Serial.printf("Ciclo inválido: %u/4 muestras. Se envía estado sin promedio.\n", valid);
+  }
+  if (cycleEpoch >= 1700000000) {
+    struct tm utc;
+    gmtime_r(&cycleEpoch, &utc);
+    char timestamp[25];
+    strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%SZ", &utc);
+    body += String(",\"ciclo_en\":\"") + timestamp + "\"";
+  }
+  body += "}";
+  for (uint8_t retry = 1; retry <= 3; ++retry) {
+    if (sendReading(body)) break;
+    if (retry < 3) {
+      Serial.printf("Reintento HTTP %u/3 en 5 segundos.\n", retry + 1);
+      delay(5000);
     }
   }
 

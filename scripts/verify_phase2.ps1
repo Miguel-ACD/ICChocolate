@@ -35,4 +35,4 @@ $summary = docker compose exec -T web python manage.py shell -c "from inventory.
 if ($LASTEXITCODE -ne 0) { throw 'No se pudo consultar PostgreSQL.' }
 $parts = $summary.ToString().Trim().Split(':')
 if ([int]$parts[0] -lt 2) { throw 'Faltan las equivalencias iniciales.' }
-Write-Output "Fase 2 OK: 55 pruebas y rutas HTTP por rol; equivalencias activas=$($parts[0]), stock=$($parts[1])."
+Write-Output "Fase 2 OK: suite completa y rutas HTTP por rol; equivalencias activas=$($parts[0]), stock=$($parts[1])."

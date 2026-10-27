@@ -32,28 +32,19 @@ Cada perfil tiene un `alias` de hasta 40 caracteres en PostgreSQL. Se cambia des
 
 La migración `0003_userprofile_alias` asigna un alias inicial a las cuentas existentes a partir de su nombre de usuario; las cuentas demo nuevas se crean como **Dueño** y **Empleado**. Los movimientos continúan relacionados con la cuenta real mediante `Movement.created_by`. Al cambiar el alias, también cambia el nombre visible en movimientos anteriores, porque el historial consulta el alias vigente; el autor registrado y el stock no se modifican.
 
-## Sensor DHT11 en Inventario
+## Sensor DHT11 y monitoreo local
 
-La pestaña **Inventario** muestra un solo recuadro bajo la tabla y su paginación. Indica temperatura, humedad, hora de recepción y comunicación. Muestra **Esperando sensor** hasta recibir la primera medición y **Lectura antigua** si pasan más de 180 segundos sin otra. La página consulta la última lectura cada 15 segundos sin recargarse ni afectar los formularios. Dueño y empleado pueden verla con su sesión normal.
+El ESP32-WROOM-32 toma cuatro muestras del DHT11 (DATA en GPIO4) cada 60 segundos. Solo publica temperatura y humedad promedio cuando las cuatro son válidas. Si falla alguna, envía un ciclo `INVALIDO` con cantidad de muestras y sin promedios. Inventario muestra la última medición válida, la zona del dispositivo y el estado de comunicación; tras 180 segundos sin datos válidos señala «Lectura antigua». El historial en `/monitoreo/` distingue ciclos válidos, inválidos y zonas históricas. Dueño y empleado pueden consultarlo. Solo el dueño administra dispositivos en `/dispositivos/`, asigna zonas, activa o desactiva equipos y rota sus tokens.
 
-La recepción es `POST /api/sensor/lecturas/` con JSON (`reading_id` UUID, `temperature_c`, `humidity_percent`, `sample_count`) y encabezado `Authorization: Bearer <token>`. El token de dispositivo vive únicamente en `.env` y `firmware/ICChocolate_DHT11/secrets.h`; no es una cuenta de usuario. El servidor valida el rango del DHT11, registra cada lectura en PostgreSQL y acepta reintentos con el mismo `reading_id` sin crear duplicados. La consulta `GET /api/sensor/ultima/` exige una sesión de dueño o empleado.
+El contrato nuevo es `POST /api/v1/dispositivos/me/ciclos` con `Authorization: Bearer <token>` y JSON con `version: 1`, `ciclo_id` UUID, `estado`, `muestras_validas`, `temperatura_c`, `humedad_pct` y, para ciclos inválidos, `error_codigo: SENSOR_LECTURA`. `ciclo_en` es una fecha UTC opcional. Un reintento idéntico devuelve HTTP 200 y no duplica; el mismo ID con datos distintos devuelve HTTP 409. Cada token identifica un dispositivo y en PostgreSQL solo se guarda su hash. La ruta previa `/api/sensor/lecturas/` sigue disponible para firmware antiguo; los ciclos parciales de esa ruta se guardan como inválidos sin promedio.
 
-Para cargar el ESP32 desde Arduino IDE:
-
-1. Instala **esp32 by Espressif Systems**, **DHT sensor library by Adafruit** y **Adafruit Unified Sensor**.
-2. Abre `firmware/ICChocolate_DHT11/ICChocolate_DHT11.ino`. El archivo local `secrets.h` contiene el Wi-Fi, el token y `REMOTE_INGEST_URL`; está excluido de Git. No publiques ese archivo.
-3. Selecciona **ESP32 Dev Module** y el puerto USB de la placa. Conecta DHT11: DATA a GPIO4 (D4), VCC a 3V3 y GND a GND. Carga el sketch y abre el monitor serie a **115200 baudios**.
-4. El ESP32 toma cuatro muestras separadas por 10 segundos en cada ciclo de 60 segundos y envía el promedio de las válidas por HTTPS. Al arrancar sincroniza la hora para validar el certificado. Busca **Lectura recibida por ICChocolate (HTTP 201)** en el monitor. Abre <http://localhost:8001/inventario/> con tu sesión; el recuadro se actualiza cada 15 segundos.
+`seed_demo` registra `ESP32-01` en Almacén usando el token privado local si aún no existe y vincula las lecturas históricas sin cambiar sus valores. Los archivos `.env` y `firmware/ICChocolate_DHT11/secrets.h` permanecen fuera de Git. Para cargar el firmware, abre `firmware/ICChocolate_DHT11/ICChocolate_DHT11.ino` en Arduino IDE con **esp32 by Espressif Systems**, **DHT sensor library by Adafruit** y **Adafruit Unified Sensor**, selecciona **ESP32 Dev Module** y el puerto USB de la placa. El monitor serie usa 115200 baudios.
 
 ### Envío entre redes
 
-El ESP32 usa la URL pública HTTPS de **Tailscale Funnel** definida en `REMOTE_INGEST_URL`. Valida el certificado TLS y prueba las direcciones IPv4 que publica Funnel si uno de sus relays falla. El Funnel termina TLS en la PC y entrega las peticiones a `127.0.0.1:8002`. El contenedor `sensor-gateway` acepta únicamente `POST /api/sensor/lecturas/` y lo reenvía a la web. Django exige el token del sensor. Inventario y el resto de la aplicación no se publican por Funnel: se consultan localmente en <http://localhost:8001/inventario/>.
+El firmware usa la URL HTTPS de Tailscale Funnel configurada en `REMOTE_INGEST_URL`. Funnel entrega solo el endpoint del sensor al contenedor `sensor-gateway` en `127.0.0.1:8002`; las páginas y sesiones web permanecen en `127.0.0.1:8001`. Django valida el token. El ESP32 puede estar en otra red con Internet; la PC debe permanecer encendida con Docker Desktop y Tailscale conectados. Si cambia el Wi-Fi del ESP32, actualiza sus credenciales en el `secrets.h` privado y vuelve a cargarlo. Si no hay URL remota, el sketch usa la ruta HTTP local configurada para `192.168.18.244`.
 
-Para esta instalación personal, la URL de Funnel es `https://miguellenovo.tail15a9af.ts.net`. Si se instala en otra PC, cambia la URL en el `secrets.h` local y vuelve a cargar el firmware. La PC puede cambiar de red sin modificar el firmware; debe permanecer encendida con Docker Desktop y Tailscale conectados. El ESP32 puede usar otra red con salida a Internet. Si cambia el Wi-Fi al que se conecta el ESP32, actualiza `WIFI_SSID` y `WIFI_PASSWORD` en `secrets.h` y vuelve a cargarlo. Funnel se configuró para seguir activo en segundo plano, y los contenedores usan `restart: unless-stopped`.
-
-`config/lan_bridge.py` y la URL HTTP local del firmware se conservan como alternativa de red local. El puente solo sirve en la subred `192.168.18.0/24` con la PC en `192.168.18.244`; no es necesario para el envío HTTPS entre redes. Si no se define `REMOTE_INGEST_URL`, el firmware usa esa URL local.
-La suite automatizada genera mediciones simuladas **solo en una base temporal de pruebas**. La base de uso recibió lecturas reales del ESP32 por HTTPS; no se insertaron mediciones simuladas en ella.
-
+La suite automatizada crea ciclos simulados solo en una base PostgreSQL temporal. Para la comprobación física se exige un ciclo nuevo desde el ESP32 y se contrasta con el monitor serie y la fila nueva en la base habitual.
 ## Iniciar en Windows con Docker Desktop
 
 1. Copia `.env.example` como `.env` y reemplaza **todos** los valores que dicen `replace-with-...` por claves y contraseñas propias. `.env` está excluido del repositorio. También puedes conservar el `.env` local que se entregó junto al proyecto.
@@ -77,7 +68,7 @@ Para activar Funnel en una instalación nueva de Tailscale: `tailscale funnel --
 ## Pruebas
 
 ```powershell
-docker compose run --rm web python manage.py test inventory -v 2
+scripts/verify_phase3.ps1
 ```
 
 Los tests crean su propia base de datos temporal de PostgreSQL. Cubren acceso y permisos, compra, venta, traslado, rechazo de stock insuficiente, operación incompleta, motivo obligatorio, atomicidad e idempotencia. Véase [QA.md](QA.md) para el recorrido manual y el resultado comprobado.
@@ -111,7 +102,7 @@ inventory/tests/                pruebas automáticas
 compose.yaml                    web + PostgreSQL + gateway; trabajador futuro opcional
 ```
 
-La lógica de stock se concentra en `register_movement`. Las futuras entradas desde OCR deberán terminar en el mismo servicio **después** de revisión humana. La ingesta ESP32 usa `inventory/sensors.py` y `SensorReading`, sin modificar existencias ni movimientos. El proceso `worker` queda reservado. La elección y prueba de OCR, alertas, chatbot, fotografías y despliegue AWS corresponde a próximas entregas.
+La lógica de stock se concentra en `register_movement`. Las futuras entradas desde OCR deberán terminar en el mismo servicio **después** de revisión humana. La ingesta ESP32 usa `inventory/sensors.py`, `inventory/device_service.py` y `SensorReading`, sin modificar existencias ni movimientos. El proceso `worker` queda reservado. La elección y prueba de OCR, alertas, chatbot, fotografías y despliegue AWS corresponde a próximas entregas.
 
 ## Fuentes de requisitos
 

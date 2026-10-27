@@ -7,7 +7,8 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from inventory.models import SensorReading, UserProfile
+from inventory.models import Location, SensorReading, UserProfile
+from inventory.device_service import register_device
 
 
 @override_settings(SENSOR_DEVICE_TOKEN="test-device-token")
@@ -20,6 +21,8 @@ class SensorTests(TestCase):
         cls.no_profile = users.objects.create_user(username="other@example.test", password="test-pass")
         UserProfile.objects.create(user=cls.owner, role=UserProfile.Role.OWNER)
         UserProfile.objects.create(user=cls.employee, role=UserProfile.Role.EMPLOYEE)
+        cls.location = Location.objects.create(code="SENSOR-TEST", name="Almacén test")
+        cls.device, _ = register_device(user=cls.owner, code="ESP32-01", location_id=cls.location.pk, token="test-device-token")
 
     def payload(self):
         return {"reading_id": str(uuid.uuid4()), "temperature_c": 24.25, "humidity_percent": 61.5, "sample_count": 4}

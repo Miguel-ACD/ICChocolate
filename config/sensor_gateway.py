@@ -4,7 +4,7 @@ import os
 from http.client import HTTPConnection
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-INGEST_PATH = "/api/sensor/lecturas/"
+INGEST_PATHS = {"/api/sensor/lecturas/", "/api/v1/dispositivos/me/ciclos"}
 MAX_BODY = 1024
 UPSTREAM_HOST = os.getenv("SENSOR_UPSTREAM_HOST", "127.0.0.1")
 UPSTREAM_PORT = int(os.getenv("SENSOR_UPSTREAM_PORT", "8001"))
@@ -14,7 +14,7 @@ LISTEN_PORT = int(os.getenv("SENSOR_GATEWAY_PORT", "8002"))
 
 class SensorGateway(BaseHTTPRequestHandler):
     def do_POST(self):
-        if self.path != INGEST_PATH:
+        if self.path not in INGEST_PATHS:
             self.send_error(404)
             return
         try:
@@ -32,7 +32,7 @@ class SensorGateway(BaseHTTPRequestHandler):
         connection = HTTPConnection(UPSTREAM_HOST, UPSTREAM_PORT, timeout=10)
         try:
             connection.request(
-                "POST", INGEST_PATH, body,
+                "POST", self.path, body,
                 {"Content-Type": "application/json",
                  "Authorization": self.headers.get("Authorization", ""),
                  "Host": "127.0.0.1:8001"},

@@ -13,10 +13,12 @@
 <section class="sensor-card panel" data-sensor-url="{% url 'sensor_latest' %}" aria-label="Sensor de temperatura y humedad">
   <div class="sensor-card-heading"><span class="eyebrow">AMBIENTE</span><span class="sensor-badge" id="sensor-status">Esperando sensor</span></div>
   <h2>Sensor DHT11</h2>
+  <p id="sensor-zone">Zona: esperando dispositivo</p>
   <div class="sensor-temperature"><strong id="sensor-temperature">--</strong><span>°C</span></div>
   <div class="sensor-humidity">Humedad relativa <strong id="sensor-humidity">-- %</strong></div>
   <p class="sensor-updated" id="sensor-updated">Última actualización: sin lecturas</p>
   <p class="sensor-communication" id="sensor-communication" role="status">Esperando sensor</p>
+  <a href="{% url 'monitoring' %}">Ver historial de sensores</a>
 </section>
 <script src="{% static 'inventory/sensor.js' %}" defer></script>
 {% endblock %}

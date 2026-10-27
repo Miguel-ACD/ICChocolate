@@ -17,6 +17,7 @@
         <a href="{% url 'dashboard' %}" class="nav-link {% if page == 'dashboard' %}active{% endif %}" {% if page == 'dashboard' %}aria-current="page"{% endif %}>{% include 'inventory/ui_icon.html' with icon='summary' %} Resumen</a>
         <a href="{% url 'inventory' %}" class="nav-link {% if page == 'inventory' %}active{% endif %}" {% if page == 'inventory' %}aria-current="page"{% endif %}>{% include 'inventory/ui_icon.html' with icon='inventory' %} Inventario</a>
         <a href="{% url 'movement_history' %}" class="nav-link {% if page == 'movement_history' %}active{% endif %}" {% if page == 'movement_history' %}aria-current="page"{% endif %}>{% include 'inventory/ui_icon.html' with icon='history' %} Historial</a>
+        <a href="{% url 'monitoring' %}" class="nav-link {% if page == 'monitoring' %}active{% endif %}">Monitoreo</a>
         <a href="{% url 'draft_list' %}" class="nav-link {% if page == 'draft_list' %}active{% endif %}">Borradores</a>
         <a href="{% url 'conversion_new' %}" class="nav-link {% if page == 'conversion_new' %}active{% endif %}">Convertir presentaciones</a>
       </nav>
@@ -25,6 +26,7 @@
       <nav aria-label="Administración" class="nav-list">
         <a href="{% url 'product_new' %}" data-modal-open class="nav-link {% if page == 'product_new' %}active{% endif %}" {% if page == 'product_new' %}aria-current="page"{% endif %}>{% include 'inventory/ui_icon.html' with icon='product' %} Crear producto</a>
         <a href="{% url 'location_new' %}" data-modal-open class="nav-link {% if page == 'location_new' %}active{% endif %}" {% if page == 'location_new' %}aria-current="page"{% endif %}>{% include 'inventory/ui_icon.html' with icon='location' %} Crear ubicación</a>
+        <a href="{% url 'device_list' %}" class="nav-link">Dispositivos</a>
         <a href="{% url 'user_list' %}" class="nav-link">Usuarios</a>
         <a href="{% url 'catalog_admin' %}" class="nav-link">Administrar catálogo</a>
         <a href="{% url 'presentation_new' %}" class="nav-link">Crear presentación</a>

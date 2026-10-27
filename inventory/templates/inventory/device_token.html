@@ -1,0 +1,7 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Token de dispositivo · ICChocolate{% endblock %}
+{% block breadcrumb %}Dispositivos{% endblock %}
+{% block page_label %}TOKEN NUEVO{% endblock %}
+{% block page_heading %}Token de {{ device.code }}{% endblock %}
+{% block page_description %}Cópialo ahora: no volverá a mostrarse. Actualiza el firmware antes del siguiente envío.{% endblock %}
+{% block content %}<section class="panel"><p>Token del dispositivo:</p><pre>{{ token }}</pre><p>Guárdalo únicamente en el archivo local <code>secrets.h</code> del ESP32. No lo publiques en Git ni lo compartas por chat.</p><a class="button button-dark" href="{% url 'device_list' %}">Volver a dispositivos</a></section>{% endblock %}
