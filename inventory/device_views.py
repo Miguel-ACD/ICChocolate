@@ -7,7 +7,7 @@ from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from .device_service import assign_device, register_device, rotate_device_token, set_device_active
-from .models import Location, SensorAssignment, SensorDevice, SensorReading, UserProfile
+from .models import AlertEpisode, AlertRule, Location, SensorAssignment, SensorDevice, SensorReading, UserProfile
 from .services import InventoryError, is_owner
 
 
@@ -43,12 +43,16 @@ def monitoring(request):
     latest_valid = None
     latest_cycle = None
     assignment = None
+    alert_rule = None
+    active_alert = None
     if device:
         cycles = SensorReading.objects.filter(device=device).select_related("assignment__location").order_by("-received_at", "-pk")
         latest_cycle = cycles.first()
         latest_valid = cycles.filter(status=SensorReading.Status.VALID).annotate(
             effective_at=Coalesce("cycle_started_at", "received_at")).order_by("-effective_at", "-pk").first()
         assignment = SensorAssignment.objects.filter(device=device, ended_at__isnull=True).select_related("location").first()
+        alert_rule = AlertRule.objects.filter(device=device, ended_at__isnull=True).first()
+        active_alert = AlertEpisode.objects.filter(device=device, status=AlertEpisode.Status.ACTIVE).first()
     from django.utils import timezone
     now = timezone.now()
     fresh = latest_valid and (now - latest_valid.effective_at).total_seconds() <= 180
@@ -57,6 +61,7 @@ def monitoring(request):
         "devices": devices, "device": device, "cycles": cycles[:100], "latest_valid": latest_valid,
         "latest_cycle": latest_cycle, "assignment": assignment, "fresh": fresh,
         "communicating": communicating, "owner": is_owner(request.user),
+        "alert_rule": alert_rule, "active_alert": active_alert,
     })
 
 

@@ -78,4 +78,7 @@ class Command(BaseCommand):
             assignment = SensorAssignment.objects.create(device=device, location=warehouse,
                                                          started_at=timezone.now())
         SensorReading.objects.filter(device__isnull=True).update(device=device, assignment=assignment)
+        from inventory.alerts import ensure_rule
+        for registered_device in SensorDevice.objects.all():
+            ensure_rule(registered_device, created_by=owner)
         self.stdout.write(self.style.SUCCESS("Demo lista: dos usuarios y cinco posiciones iniciales."))

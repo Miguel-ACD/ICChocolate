@@ -42,8 +42,15 @@ if ($LASTEXITCODE -ne 0) { throw 'No se pudo iniciar el gateway del sensor.' }
 $gateway = 'http://127.0.0.1:8002'
 $gatewaySession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 $payload = '{"version":1,"ciclo_id":"00000000-0000-4000-8000-000000000001","estado":"INVALIDO","muestras_validas":0,"temperatura_c":null,"humedad_pct":null,"error_codigo":"SENSOR_LECTURA"}'
-$unauthorized = Get-Status "$gateway/api/v1/dispositivos/me/ciclos" $gatewaySession 'Post' $payload @{Authorization='Bearer invalid-integration-test-token'; 'Content-Type'='application/json'}
-if ($unauthorized -ne 401) { throw "Gateway aceptó token incorrecto: $unauthorized" }
+$unauthorized = 0
+for ($attempt = 0; $attempt -lt 30; $attempt++) {
+    try {
+        $unauthorized = Get-Status "$gateway/api/v1/dispositivos/me/ciclos" $gatewaySession 'Post' $payload @{Authorization='Bearer invalid-integration-test-token'; 'Content-Type'='application/json'}
+    } catch { $unauthorized = 0 }
+    if ($unauthorized -eq 401) { break }
+    Start-Sleep -Seconds 1
+}
+if ($unauthorized -ne 401) { throw "Gateway no rechazó correctamente el token tras esperar la web: $unauthorized" }
 if ((Get-Status "$gateway/inventario/" $gatewaySession) -ne 404) { throw 'El gateway expone una página interna.' }
 
 $summary = docker compose exec -T web python manage.py shell -c "from inventory.models import SensorDevice,SensorAssignment,SensorReading; print(f'{SensorDevice.objects.count()}:{SensorAssignment.objects.filter(ended_at__isnull=True).count()}:{SensorReading.objects.filter(device__isnull=True).count()}')" 2>&1 | Select-Object -Last 1

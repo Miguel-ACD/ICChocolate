@@ -1,0 +1,8 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Destinatarios · ICChocolate{% endblock %}
+{% block breadcrumb %}Destinatarios{% endblock %}
+{% block page_heading %}Destinatarios de alertas{% endblock %}
+{% block page_description %}El correo requiere una dirección real y una cuenta activa. Los avisos web llegan a todos los usuarios activos.{% endblock %}
+{% block content %}<div class="panel table-panel data-table"><table><thead><tr><th>Usuario</th><th>Correo de alertas</th><th>Correo activo</th><th></th></tr></thead><tbody>
+{% for profile in profiles %}<tr><td>{{ profile.alias }}</td><td>{{ profile.alert_email|default:'Sin configurar' }}</td><td>{% if profile.receives_alert_email %}Sí{% else %}No{% endif %}</td><td><a href="{% url 'alert_recipient_edit' profile.pk %}">Editar</a></td></tr>{% endfor %}
+</tbody></table></div>{% endblock %}

@@ -1,0 +1,19 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Alertas · ICChocolate{% endblock %}
+{% block breadcrumb %}Alertas{% endblock %}
+{% block page_label %}AMBIENTE{% endblock %}
+{% block page_heading %}Alertas{% endblock %}
+{% block page_description %}Estado térmico y avisos por dispositivo. Los avisos web permanecen visibles si el correo falla.{% endblock %}
+{% block page_actions %}{% if owner %}<a class="button button-dark" href="{% url 'alert_rules' %}">Umbrales</a> <a class="button button-dark" href="{% url 'alert_recipients' %}">Destinatarios</a>{% endif %}{% endblock %}
+{% block content %}
+<section class="panel"><h2>Episodios activos</h2>{% for item in active %}<p><strong>{{ item.device.code }}</strong> · {{ item.location_snapshot }} · sobre {{ item.threshold_snapshot }} °C desde {{ item.started_at|date:'d/m/Y H:i:s' }}</p>{% empty %}<p>No hay episodios térmicos activos.</p>{% endfor %}</section>
+{% if owner and not smtp_ready %}<div class="panel">El correo SMTP aún no está configurado. Los avisos web funcionan y los mensajes pendientes esperan la configuración.</div>{% endif %}
+<div class="panel table-panel data-table"><table><thead><tr><th>Fecha</th><th>Evento</th><th>Dispositivo</th><th>Zona</th><th>Temperatura</th><th>Umbral</th></tr></thead><tbody>
+{% for item in notifications %}<tr><td>{{ item.created_at|date:'d/m/Y H:i:s' }}</td><td>{{ item.get_event_display }}</td><td>{{ item.content.device }}</td><td>{{ item.content.location }}</td><td>{{ item.content.temperature_c }} °C</td><td>{{ item.content.threshold_c }} °C</td></tr>
+{% empty %}<tr><td colspan="6">Todavía no hay avisos.</td></tr>{% endfor %}
+</tbody></table></div>
+{% if owner %}<h2>Estado de correos</h2><div class="panel table-panel data-table"><table><thead><tr><th>Evento</th><th>Destinatario</th><th>Estado</th><th>Intentos</th><th>Código</th></tr></thead><tbody>
+{% for item in email_notifications %}<tr><td>{{ item.get_event_display }} · {{ item.episode.device.code }}</td><td>{{ item.recipient_snapshot }}</td><td>{{ item.get_status_display }}</td><td>{{ item.attempts }}</td><td>{{ item.error_code|default:'—' }}</td></tr>
+{% empty %}<tr><td colspan="5">No hay correos solicitados.</td></tr>{% endfor %}</tbody></table></div>{% endif %}
+{% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %} Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}">Siguiente</a>{% endif %}
+{% endblock %}

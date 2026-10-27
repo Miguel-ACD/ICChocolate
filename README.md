@@ -45,6 +45,16 @@ El contrato nuevo es `POST /api/v1/dispositivos/me/ciclos` con `Authorization: B
 El firmware usa la URL HTTPS de Tailscale Funnel configurada en `REMOTE_INGEST_URL`. Funnel entrega solo el endpoint del sensor al contenedor `sensor-gateway` en `127.0.0.1:8002`; las páginas y sesiones web permanecen en `127.0.0.1:8001`. Django valida el token. El ESP32 puede estar en otra red con Internet; la PC debe permanecer encendida con Docker Desktop y Tailscale conectados. Si cambia el Wi-Fi del ESP32, actualiza sus credenciales en el `secrets.h` privado y vuelve a cargarlo. Si no hay URL remota, el sketch usa la ruta HTTP local configurada para `192.168.18.244`.
 
 La suite automatizada crea ciclos simulados solo en una base PostgreSQL temporal. Para la comprobación física se exige un ciclo nuevo desde el ESP32 y se contrasta con el monitor serie y la fila nueva en la base habitual.
+## Alertas y correo (fase 4)
+
+La temperatura activa un episodio cuando un promedio válido supera **10 °C**; a 10 °C exactos no se activa. El dueño puede cambiar el umbral por dispositivo en `/alertas/reglas/`. Cada cambio crea una versión nueva y cierra el episodio previo sin declarar una recuperación ficticia. La humedad se muestra sin alerta inicial. `/alertas/` muestra episodios y avisos web para dueño y empleado; `/monitoreo/` muestra el estado térmico junto al de comunicación.
+
+Un episodio genera un aviso inicial, como máximo un recordatorio cuando llega otra lectura válida tras tres minutos y un aviso de recuperación al recibir un promedio dentro del umbral. Un ciclo inválido o 180 segundos sin datos válidos no equivale a recuperación. El trabajador `worker` detecta la falta de datos y procesa la cola de correos aunque no haya un navegador abierto. Los correos pendientes, aceptados, fallidos e inciertos se muestran al dueño. Un resultado SMTP incierto no se reenvía automáticamente.
+
+El dueño configura destinatarios en `/alertas/destinatarios/`. Las cuentas demo terminadas en `.local` no reciben correo por defecto. El remitente SMTP se define en el `.env` privado con `ALERT_SMTP_HOST`, `ALERT_SMTP_PORT`, `ALERT_SMTP_STARTTLS`, `ALERT_SMTP_USERNAME`, `ALERT_SMTP_PASSWORD` y `ALERT_SMTP_FROM`. Para Gmail personal, usa `smtp.gmail.com`, puerto `587`, STARTTLS y una [contraseña de aplicación](https://support.google.com/accounts/answer/185833?hl=es) con verificación en dos pasos; nunca guardes esa contraseña en Git. La [configuración SMTP de Gmail](https://support.google.com/mail/answer/7104828?hl=es) confirma esos parámetros. Un correo aceptado por SMTP prueba el envío al proveedor, pero no confirma su llegada al buzón.
+
+Las pruebas automatizadas generan ciclos simulados en PostgreSQL temporal y usan remitentes simulados. La prueba integrada de esta PC vinculó un aviso y un correo SMTP real a una lectura física nueva del ESP32.
+
 ## Iniciar en Windows con Docker Desktop
 
 1. Copia `.env.example` como `.env` y reemplaza **todos** los valores que dicen `replace-with-...` por claves y contraseñas propias. `.env` está excluido del repositorio. También puedes conservar el `.env` local que se entregó junto al proyecto.
@@ -54,11 +64,11 @@ La suite automatizada crea ciclos simulados solo en una base PostgreSQL temporal
    docker compose build
    docker compose run --rm web python manage.py migrate --noinput
    docker compose run --rm web python manage.py seed_demo
-   docker compose up -d web sensor-gateway
+   docker compose up -d web sensor-gateway worker
    ```
 
 3. Abre <http://localhost:8001>. Usa las cuentas definidas por `DEMO_OWNER_EMAIL`, `DEMO_OWNER_PASSWORD`, `DEMO_EMPLOYEE_EMAIL` y `DEMO_EMPLOYEE_PASSWORD` en tu `.env` local.
-4. Para detener sin borrar datos: `docker compose down`. Para iniciar de nuevo: `docker compose up -d web sensor-gateway`. **No** uses `docker compose down -v` si quieres conservar los datos.
+4. Para detener sin borrar datos: `docker compose down`. Para iniciar de nuevo: `docker compose up -d web sensor-gateway worker`. **No** uses `docker compose down -v` si quieres conservar los datos.
 
 `seed_demo` es idempotente: repetirlo no duplica cuentas ni existencias iniciales. Las contraseñas de cuentas ya existentes no cambian al repetirlo.
 
@@ -68,7 +78,7 @@ Para activar Funnel en una instalación nueva de Tailscale: `tailscale funnel --
 ## Pruebas
 
 ```powershell
-scripts/verify_phase3.ps1
+scripts/verify_phase4.ps1
 ```
 
 Los tests crean su propia base de datos temporal de PostgreSQL. Cubren acceso y permisos, compra, venta, traslado, rechazo de stock insuficiente, operación incompleta, motivo obligatorio, atomicidad e idempotencia. Véase [QA.md](QA.md) para el recorrido manual y el resultado comprobado.
@@ -97,12 +107,12 @@ inventory/forms.py              validación de entradas manuales
 inventory/views.py              pantallas y permisos
 inventory/templates/inventory/  interfaz HTML
 inventory/static/inventory/     estilo visual y apertura de ventanas
-inventory/management/commands/  carga idempotente y trabajador reservado
+inventory/management/commands/  carga idempotente y trabajador de alertas
 inventory/tests/                pruebas automáticas
-compose.yaml                    web + PostgreSQL + gateway; trabajador futuro opcional
+compose.yaml                    web + PostgreSQL + gateway + trabajador de alertas
 ```
 
-La lógica de stock se concentra en `register_movement`. Las futuras entradas desde OCR deberán terminar en el mismo servicio **después** de revisión humana. La ingesta ESP32 usa `inventory/sensors.py`, `inventory/device_service.py` y `SensorReading`, sin modificar existencias ni movimientos. El proceso `worker` queda reservado. La elección y prueba de OCR, alertas, chatbot, fotografías y despliegue AWS corresponde a próximas entregas.
+La lógica de stock se concentra en `register_movement`. Las futuras entradas desde OCR deberán terminar en el mismo servicio **después** de revisión humana. La ingesta ESP32 usa `inventory/sensors.py`, `inventory/device_service.py` y `SensorReading`, sin modificar existencias ni movimientos. El proceso `worker` evalúa desconexiones y despacha la cola SMTP. OCR, chatbot, fotografías y despliegue AWS corresponden a próximas entregas.
 
 ## Fuentes de requisitos
 

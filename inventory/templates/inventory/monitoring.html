@@ -11,6 +11,7 @@
   <h2>{{ device.code }} · {% if assignment %}{{ assignment.location.name }}{% else %}Sin zona actual{% endif %}</h2>
   <p>Comunicación: {% if communicating %}reciente{% elif latest_cycle %}sin datos recientes{% else %}sin primera lectura{% endif %}. Última medición válida: {% if fresh %}reciente{% elif latest_valid %}antigua{% else %}sin primera lectura{% endif %}.</p>
   {% if latest_valid %}<p>{{ latest_valid.temperature_c }} °C · {{ latest_valid.humidity_percent }} % HR, recibido {{ latest_valid.received_at|date:'d/m/Y H:i:s' }} en {{ latest_valid.assignment.location.name }}.</p>{% endif %}
+  <p>Umbral vigente: {% if alert_rule %}{{ alert_rule.threshold_c }}{% else %}10{% endif %} °C. {% if active_alert and communicating %}Alerta térmica activa desde {{ active_alert.started_at|date:'d/m/Y H:i:s' }}.{% elif active_alert %}Sin datos recientes; el episodio espera revisión del trabajador.{% else %}Sin alerta térmica activa.{% endif %} <a href="{% url 'alert_list' %}">Ver alertas</a></p>
   {% if latest_cycle.status == 'INVALIDO' %}<p>Último ciclo inválido: {{ latest_cycle.sample_count }} de 4 muestras válidas. La medición válida anterior conserva su fecha.</p>{% endif %}
 </section>
 <div class="panel table-panel data-table"><table><thead><tr><th>Recepción</th><th>Ciclo</th><th>Zona medida</th><th>Temperatura</th><th>Humedad</th><th>Muestras</th></tr></thead><tbody>

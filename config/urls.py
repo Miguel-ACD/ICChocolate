@@ -1,6 +1,6 @@
 from django.urls import include, path
 from inventory import views
-from inventory import sensors, device_views
+from inventory import sensors, device_views, alert_views
 
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
@@ -9,6 +9,11 @@ urlpatterns = [
     path("accounts/alias/", views.alias_settings, name="alias_settings"),
     path("inventario/", views.inventory_list, name="inventory"),
     path("monitoreo/", device_views.monitoring, name="monitoring"),
+    path("alertas/", alert_views.alert_list, name="alert_list"),
+    path("alertas/reglas/", alert_views.alert_rules, name="alert_rules"),
+    path("alertas/reglas/<int:device_id>/", alert_views.alert_rule_edit, name="alert_rule_edit"),
+    path("alertas/destinatarios/", alert_views.alert_recipients, name="alert_recipients"),
+    path("alertas/destinatarios/<int:profile_id>/", alert_views.alert_recipient_edit, name="alert_recipient_edit"),
     path("dispositivos/", device_views.device_list, name="device_list"),
     path("dispositivos/nuevo/", device_views.device_new, name="device_new"),
     path("dispositivos/<int:device_id>/asignar/", device_views.device_assign, name="device_assign"),

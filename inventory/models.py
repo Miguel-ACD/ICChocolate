@@ -14,6 +14,8 @@ class UserProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="profile")
     role = models.CharField(max_length=8, choices=Role.choices)
     alias = models.CharField(max_length=40, default="Usuario")
+    alert_email = models.EmailField(blank=True)
+    receives_alert_email = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.alias} ({self.get_role_display()})"
@@ -227,3 +229,88 @@ class SensorReading(models.Model):
                 Q(status="INVALIDO", sample_count__lt=4, temperature_c__isnull=True, humidity_percent__isnull=True)
             ), name="sensor_cycle_state_consistent"),
         ]
+
+class AlertRule(models.Model):
+    device = models.ForeignKey(SensorDevice, on_delete=models.PROTECT, related_name="alert_rules")
+    version = models.PositiveIntegerField()
+    threshold_c = models.DecimalField(max_digits=6, decimal_places=2, default=10)
+    reminder_seconds = models.PositiveIntegerField(default=180)
+    stale_seconds = models.PositiveIntegerField(default=180)
+    started_at = models.DateTimeField()
+    ended_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["device", "version"], name="unique_alert_rule_version"),
+            models.UniqueConstraint(fields=["device"], condition=Q(ended_at__isnull=True), name="one_current_alert_rule"),
+            models.CheckConstraint(condition=Q(threshold_c__gte=0, threshold_c__lte=50), name="alert_threshold_range"),
+            models.CheckConstraint(condition=Q(reminder_seconds__gt=0, stale_seconds__gt=0), name="alert_intervals_positive"),
+            models.CheckConstraint(condition=Q(ended_at__isnull=True) | Q(ended_at__gt=models.F("started_at")), name="alert_rule_time_order"),
+        ]
+
+
+class AlertEpisode(models.Model):
+    class Status(models.TextChoices):
+        ACTIVE = "ACTIVO", "Activo"
+        RECOVERED = "RECUPERADO", "Recuperado"
+        NO_DATA = "SIN_DATOS", "Sin datos"
+        CONFIGURATION = "CONFIGURACION", "Cambio de configuración"
+        REASSIGNED = "REASIGNADO", "Zona reasignada"
+
+    device = models.ForeignKey(SensorDevice, on_delete=models.PROTECT, related_name="alert_episodes")
+    rule = models.ForeignKey(AlertRule, on_delete=models.PROTECT)
+    start_reading = models.ForeignKey(SensorReading, on_delete=models.PROTECT, related_name="started_alerts")
+    last_reading = models.ForeignKey(SensorReading, on_delete=models.PROTECT, related_name="latest_alerts")
+    close_reading = models.ForeignKey(SensorReading, on_delete=models.PROTECT, null=True, blank=True, related_name="closed_alerts")
+    status = models.CharField(max_length=14, choices=Status.choices, default=Status.ACTIVE)
+    started_at = models.DateTimeField()
+    closed_at = models.DateTimeField(null=True, blank=True)
+    location_snapshot = models.CharField(max_length=100)
+    threshold_snapshot = models.DecimalField(max_digits=6, decimal_places=2)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["device"], condition=Q(status="ACTIVO"), name="one_active_alert_episode"),
+            models.CheckConstraint(condition=(Q(status="ACTIVO", closed_at__isnull=True) | (~Q(status="ACTIVO") & Q(closed_at__isnull=False))), name="alert_episode_closed_state"),
+        ]
+
+
+class AlertNotification(models.Model):
+    class Event(models.TextChoices):
+        START = "INICIO", "Inicio"
+        REMINDER = "RECORDATORIO", "Recordatorio"
+        RECOVERY = "RECUPERACION", "Recuperación"
+
+    class Channel(models.TextChoices):
+        WEB = "WEB", "Web"
+        EMAIL = "EMAIL", "Correo"
+
+    class Status(models.TextChoices):
+        PENDING = "PENDIENTE", "Pendiente"
+        SENDING = "ENVIANDO", "Enviando"
+        ACCEPTED = "ACEPTADA", "Aceptada"
+        FAILED = "FALLIDA", "Fallida"
+        UNCERTAIN = "INCIERTA", "Incierta"
+        CANCELLED = "CANCELADA", "Cancelada"
+
+    episode = models.ForeignKey(AlertEpisode, on_delete=models.PROTECT, related_name="notifications")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="alert_notifications")
+    event = models.CharField(max_length=12, choices=Event.choices)
+    channel = models.CharField(max_length=5, choices=Channel.choices)
+    recipient_snapshot = models.EmailField(blank=True)
+    content = models.JSONField(default=dict)
+    status = models.CharField(max_length=10, choices=Status.choices)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    available_at = models.DateTimeField()
+    lease_until = models.DateTimeField(null=True, blank=True)
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    error_code = models.CharField(max_length=60, blank=True)
+    message_id = models.CharField(max_length=254, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["episode", "user", "event", "channel"], name="unique_alert_notification_event"),
+        ]
+        ordering = ["-created_at", "-pk"]

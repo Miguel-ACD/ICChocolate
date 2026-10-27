@@ -47,7 +47,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: ["python", "manage.py", "future_worker"]
-    profiles: ["future"]
+    restart: unless-stopped
+    command: ["python", "manage.py", "alert_worker"]
 volumes:
   postgres_data:

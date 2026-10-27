@@ -1,0 +1,8 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Umbrales · ICChocolate{% endblock %}
+{% block breadcrumb %}Umbrales{% endblock %}
+{% block page_heading %}Umbrales por dispositivo{% endblock %}
+{% block page_description %}Solo la temperatura tiene una regla activa. La humedad se muestra sin alerta configurada.{% endblock %}
+{% block content %}<div class="panel table-panel data-table"><table><thead><tr><th>Dispositivo</th><th>Umbral</th><th>Versión</th><th></th></tr></thead><tbody>
+{% for device, rule in rows %}<tr><td>{{ device.code }}</td><td>{% if rule %}{{ rule.threshold_c }} °C{% else %}10 °C inicial{% endif %}</td><td>{% if rule %}{{ rule.version }}{% else %}Pendiente{% endif %}</td><td><a href="{% url 'alert_rule_edit' device.pk %}">Cambiar</a></td></tr>{% endfor %}
+</tbody></table></div>{% endblock %}

@@ -40,6 +40,8 @@ def register_device(*, user, code, location_id, token=None, started_at=None):
             device = SensorDevice.objects.create(code=code, token_hash=digest)
             SensorAssignment.objects.create(device=device, location=location,
                                             started_at=started_at or timezone.now())
+            from .alerts import ensure_rule
+            ensure_rule(device, created_by=user)
             return device, token
     except ValueError:
         raise InventoryError("Token de dispositivo inválido.") from None
@@ -61,6 +63,9 @@ def assign_device(*, user, device_id, location_id):
         current = SensorAssignment.objects.select_for_update().filter(device=device, ended_at__isnull=True).first()
         if current and current.location_id == location.pk:
             return current
+        from .alerts import close_device_context
+        from .models import AlertEpisode
+        close_device_context(device, AlertEpisode.Status.REASSIGNED)
         now = timezone.now()
         if current:
             current.ended_at = now
@@ -76,6 +81,10 @@ def set_device_active(*, user, device_id, active):
             device = SensorDevice.objects.select_for_update().get(pk=device_id)
         except SensorDevice.DoesNotExist:
             raise InventoryError("Dispositivo inexistente.") from None
+        if not active and device.active:
+            from .alerts import close_device_context
+            from .models import AlertEpisode
+            close_device_context(device, AlertEpisode.Status.CONFIGURATION)
         device.active = bool(active)
         device.save(update_fields=["active"])
         return device
@@ -127,4 +136,6 @@ def store_cycle(*, device, cycle_id, status, sample_count, temperature_c=None,
                                              humidity_percent=humidity_percent,
                                              error_code=error_code,
                                              cycle_started_at=cycle_started_at)
+        from .alerts import evaluate_cycle
+        evaluate_cycle(cycle)
         return cycle, True

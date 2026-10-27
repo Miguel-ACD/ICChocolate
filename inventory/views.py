@@ -11,7 +11,7 @@ from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from .forms import AliasForm, ConversionForm, EquivalenceForm, LocationForm, LocationRenameForm, MovementForm, PresentationEditForm, PresentationForm, ProductEditForm, ProductForm, ReversalForm, LocationEditForm, UserCreateForm, UserEditForm
-from .models import Equivalence, Location, Movement, MovementDraft, Presentation, Product, Stock, UserProfile
+from .models import AlertEpisode, Equivalence, Location, Movement, MovementDraft, Presentation, Product, Stock, UserProfile
 from .services import InventoryError, is_owner, register_movement
 from .phase2 import cancel_draft, confirm_draft, create_draft, create_equivalence, deactivate_equivalence, edit_draft
 
@@ -55,6 +55,7 @@ def dashboard(request):
     return render(request, "inventory/dashboard.html", {
         "total_units": total, "positions": stocks.count(), "products": Product.objects.filter(active=True).count(),
         "recent": recent, "owner": is_owner(request.user),
+        "active_alerts": AlertEpisode.objects.filter(status=AlertEpisode.Status.ACTIVE).count(),
     })
 
 
