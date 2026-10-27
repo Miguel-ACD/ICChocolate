@@ -5,8 +5,9 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
-from inventory.models import Location, Presentation, Product, UserProfile
+from inventory.models import Equivalence, Location, Presentation, Product, UserProfile
 from inventory.services import register_movement
+from inventory.phase2 import create_equivalence
 
 
 class Command(BaseCommand):
@@ -52,4 +53,13 @@ class Command(BaseCommand):
                 quantity=quantity, source_id=location.pk,
                 reason="Catálogo ficticio de demostración",
                 idempotency_key=uuid.uuid5(uuid.NAMESPACE_URL, f"icchocolate:seed:{code}"))
+        for source_code, target_code, source_units, target_units in (
+            ("CAJA-BARRA-12", "BARRA-100", 1, 12),
+            ("POLVO-1000", "POLVO-100", 1, 10),
+        ):
+            source = Presentation.objects.get(code=source_code)
+            target = Presentation.objects.get(code=target_code)
+            if not Equivalence.objects.filter(source=source, target=target).exists():
+                create_equivalence(user=owner, source_id=source.pk, target_id=target.pk,
+                                   source_units=source_units, target_units=target_units)
         self.stdout.write(self.style.SUCCESS("Demo lista: dos usuarios y cinco posiciones iniciales."))

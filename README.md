@@ -1,6 +1,6 @@
-# ICChocolate — primera demostración funcional
+# ICChocolate — demostración local funcional
 
-Aplicación local de inventario de chocolate para escritorio. Esta entrega muestra el flujo real de acceso, catálogo, compras, ventas, consumo, merma y traslados manuales, con PostgreSQL persistente y un historial auditable. La interfaz toma la paleta crema y cacao de la referencia visual.
+Aplicación local de inventario de chocolate. Incluye acceso, catálogo, compras, ventas, consumo, merma, traslados y conversiones manuales, con PostgreSQL persistente y un historial auditable. La interfaz toma la paleta crema y cacao de la referencia visual.
 
 ## Lo que funciona ahora
 
@@ -9,7 +9,22 @@ Aplicación local de inventario de chocolate para escritorio. Esta entrega muest
 - Antes de afectar el stock, la persona revisa un resumen y confirma. Cada operación queda atribuida a un usuario y fecha.
 - Cantidades enteras positivas, disponibilidad no negativa, motivos obligatorios en consumo y merma, traslados entre ubicaciones distintas, transacciones atómicas y clave de idempotencia para evitar doble aplicación.
 - Datos conservados en un volumen de PostgreSQL al reiniciar o reconstruir contenedores.
+- Borradores persistentes y editables con versión: ningún cambio afecta stock hasta confirmar. El creador o el dueño pueden confirmar o cancelar; el historial distingue al creador y al confirmador.
+- Equivalencias dirigidas entre presentaciones del mismo producto con contenido exactamente igual. El dueño las define; dueño y empleado pueden convertir múltiplos enteros en una ubicación.
+- El dueño puede corregir un movimiento confirmado mediante reverso completo con motivo, siempre que ninguna existencia quede negativa. El original permanece en el historial.
+- El dueño administra productos, presentaciones, ubicaciones y usuarios. No se puede desactivar una posición con stock ni cambiar la descripción de unidad de una presentación que ya tiene movimientos.
 - Los formularios de producto y movimiento se abren como ventanas centradas sobre la pantalla actual. La revisión del movimiento continúa antes de guardar stock.
+
+## Operaciones de la fase 2
+
+- **Borradores:** inicia un movimiento manual o una conversión, revisa el resumen, edita si hace falta y confirma. La lista de borradores permite cancelar uno sin afectar existencias.
+- **Conversiones:** el dueño define una equivalencia en **Equivalencias**. Ejemplo: una caja de 12 barras equivale a 12 barras del mismo producto. Después, **Convertir presentaciones** descuenta el origen y agrega el destino en una sola transacción.
+- **Correcciones:** en **Historial**, el dueño abre **Corregir con reverso**, escribe el motivo y revisa antes de confirmar. Si corresponde, registra después el movimiento correcto.
+- **Catálogo y usuarios:** el dueño puede crear presentaciones adicionales, renombrar datos descriptivos, activar o desactivar sin borrar historial y crear o desactivar cuentas. Los códigos y el contenido de una presentación no se alteran desde estas pantallas.
+
+La carga demo añade dos equivalencias iniciales de forma idempotente: `CAJA-BARRA-12 → BARRA-100` (1:12) y `POLVO-1000 → POLVO-100` (1:10). Las operaciones manuales actuales trabajan con una presentación por formulario; el flujo de varios renglones desde fotografía corresponde a la fase 5.
+
+Para repetir la verificación de integración en Windows, ejecuta `./scripts/verify_phase2.ps1`: incluye la suite PostgreSQL en base temporal, acceso HTTP por rol, permisos, reinicio y conservación de datos. El respaldo previo a la migración local se guarda de forma privada en `backups/`, excluida de Git.
 
 ## Alias de responsables
 
@@ -96,7 +111,7 @@ inventory/tests/                pruebas automáticas
 compose.yaml                    web + PostgreSQL + gateway; trabajador futuro opcional
 ```
 
-La lógica de stock se concentra en `register_movement`. Las futuras entradas desde OCR deberán terminar en el mismo servicio **después** de revisión humana. La ingesta ESP32 usa `inventory/sensors.py` y `SensorReading`, sin modificar existencias ni movimientos. El proceso `worker` queda reservado. La elección y prueba de OCR, alertas, chatbot, conversiones, reversos, fotografías y despliegue AWS corresponde a próximas entregas.
+La lógica de stock se concentra en `register_movement`. Las futuras entradas desde OCR deberán terminar en el mismo servicio **después** de revisión humana. La ingesta ESP32 usa `inventory/sensors.py` y `SensorReading`, sin modificar existencias ni movimientos. El proceso `worker` queda reservado. La elección y prueba de OCR, alertas, chatbot, fotografías y despliegue AWS corresponde a próximas entregas.
 
 ## Fuentes de requisitos
 

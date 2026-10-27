@@ -8,7 +8,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase
 
-from inventory.models import Movement, Presentation, Stock, UserProfile
+from inventory.models import Equivalence, Movement, Presentation, Stock, UserProfile
 
 
 class DemoSeedTests(TestCase):
@@ -27,6 +27,7 @@ class DemoSeedTests(TestCase):
         self.seed()
         self.assertEqual(Movement.objects.filter(type="INICIAL").count(), 5)
         self.assertEqual(Presentation.objects.count(), 5)
+        self.assertEqual(Equivalence.objects.count(), 2)
         self.assertEqual(sum(Stock.objects.values_list("quantity", flat=True)), 57)
         owner = get_user_model().objects.get(username=self.credentials["DEMO_OWNER_EMAIL"])
         self.assertEqual(owner.profile.role, UserProfile.Role.OWNER)
@@ -39,6 +40,7 @@ class DemoSeedTests(TestCase):
         self.assertTrue(owner.check_password("changed-by-owner"))
         self.assertEqual(Movement.objects.filter(type="INICIAL").count(), 5)
         self.assertEqual(sum(Stock.objects.values_list("quantity", flat=True)), 57)
+        self.assertEqual(Equivalence.objects.count(), 2)
 
     def test_missing_demo_passwords_fail_before_creating_accounts(self):
         with patch.dict(os.environ, {"DEMO_OWNER_PASSWORD": "", "DEMO_EMPLOYEE_PASSWORD": ""}):

@@ -1,0 +1,21 @@
+{% extends 'inventory/base.html' %}
+{% block title %}{{ title }} · ICChocolate{% endblock %}
+{% block breadcrumb %}{{ title }}{% endblock %}
+{% block page_label %}INVENTARIO{% endblock %}
+{% block page_heading %}{{ title }}{% endblock %}
+{% block page_description %}{{ description }}{% endblock %}
+{% block content %}
+<div class="modal-backdrop">
+  <a class="modal-shade" href="{% url 'inventory' %}" aria-label="Cerrar ventana"></a>
+  <section class="modal-card movement-modal" role="dialog" aria-modal="true" aria-labelledby="form-title">
+    <div class="modal-header"><div><span class="eyebrow">OPERACIÓN</span><h2 id="form-title">{{ title }}</h2><p>{{ description }}</p></div><a class="modal-close" href="{% url 'inventory' %}" aria-label="Cerrar ventana">×</a></div>
+    {% if original %}<div class="modal-help">Movimiento original: {{ original.get_type_display }} · {{ original.created_at|date:'d/m/Y H:i' }}. Se invertirá completo al confirmar.</div>{% endif %}
+    <form method="post" class="form-stack compact-form">{% csrf_token %}
+      {% if version %}<input type="hidden" name="version" value="{{ version }}">{% endif %}
+      {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
+      {% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</div>{% endfor %}
+      <div class="modal-actions"><a class="button button-outline" href="{% url 'inventory' %}">Cancelar</a><button class="button button-dark" type="submit">{{ submit_label }} →</button></div>
+    </form>
+  </section>
+</div>
+{% endblock %}

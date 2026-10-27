@@ -1,0 +1,13 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Equivalencias · ICChocolate{% endblock %}
+{% block breadcrumb %}Equivalencias{% endblock %}
+{% block page_label %}ADMINISTRACIÓN{% endblock %}
+{% block page_heading %}Equivalencias{% endblock %}
+{% block page_description %}Cada regla convierte presentaciones del mismo producto sin cambiar su contenido total.{% endblock %}
+{% block page_actions %}<a class="button button-dark" href="{% url 'equivalence_new' %}">+ Equivalencia</a>{% endblock %}
+{% block content %}
+<div class="panel table-panel data-table"><table><thead><tr><th>Origen</th><th>Destino</th><th>Estado</th><th>Acción</th></tr></thead><tbody>
+{% for rule in rules %}<tr><td>{{ rule.source_units }} × {{ rule.source.code }}</td><td>{{ rule.target_units }} × {{ rule.target.code }}</td><td>{% if rule.active %}Activa{% else %}Inactiva{% endif %}</td><td>{% if rule.active %}<form method="post" action="{% url 'equivalence_disable' rule.pk %}">{% csrf_token %}<button type="submit">Desactivar</button></form>{% endif %}</td></tr>
+{% empty %}<tr><td colspan="4">Aún no hay equivalencias.</td></tr>{% endfor %}
+</tbody></table></div>
+{% endblock %}

@@ -38,13 +38,13 @@ def _canonical(type_, presentation_id, quantity, source_id, destination_id, reas
 
 
 def register_movement(*, user, type_, presentation_id, quantity, source_id,
-                      destination_id=None, reason="", idempotency_key=None):
+                      destination_id=None, reason="", idempotency_key=None, draft_created_by=None):
     """Confirm one complete manual operation. Repeating its key cannot apply stock twice."""
     if (user is None or not getattr(user, "is_authenticated", False)
             or not getattr(user, "is_active", False)
             or not UserProfile.objects.filter(user=user).exists()):
         raise InventoryError("Usuario sin perfil autorizado.")
-    if type_ not in Movement.Type.values:
+    if type_ not in Movement.Type.values or type_ in (Movement.Type.CONVERSION, Movement.Type.REVERSAL):
         raise InventoryError("Tipo de movimiento inválido.")
     if type_ == Movement.Type.INITIAL and not is_owner(user):
         raise InventoryError("Solo el dueño puede registrar la carga inicial.")
@@ -65,7 +65,7 @@ def register_movement(*, user, type_, presentation_id, quantity, source_id,
     request_hash = hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
     previous = Movement.objects.filter(idempotency_key=key).first()
     if previous:
-        if previous.request_hash != request_hash or previous.created_by_id != user.pk:
+        if previous.request_hash != request_hash or (previous.confirmed_by_id or previous.created_by_id) != user.pk:
             raise InventoryError("La clave de esta operación ya corresponde a otro movimiento.")
         return previous
 
@@ -84,7 +84,7 @@ def register_movement(*, user, type_, presentation_id, quantity, source_id,
                 deltas.append((destination, q))
             movement = Movement.objects.create(
                 idempotency_key=key, request_hash=request_hash, type=type_,
-                created_by=user, reason=data["reason"])
+                created_by=draft_created_by or user, confirmed_by=user, reason=data["reason"])
             for location, delta in sorted(deltas, key=lambda item: item[0].pk):
                 stock, _ = Stock.objects.get_or_create(presentation=presentation, location=location)
                 stock = Stock.objects.select_for_update().get(pk=stock.pk)
@@ -102,6 +102,6 @@ def register_movement(*, user, type_, presentation_id, quantity, source_id,
         raise InventoryError("La presentación o ubicación no existe o está inactiva.") from None
     except IntegrityError:
         previous = Movement.objects.filter(idempotency_key=key).first()
-        if previous and previous.request_hash == request_hash and previous.created_by_id == user.pk:
+        if previous and previous.request_hash == request_hash and (previous.confirmed_by_id or previous.created_by_id) == user.pk:
             return previous
         raise InventoryError("La operación no pudo completarse; inténtala de nuevo.") from None

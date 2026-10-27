@@ -1,0 +1,8 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Usuarios · ICChocolate{% endblock %}
+{% block breadcrumb %}Usuarios{% endblock %}
+{% block page_label %}ADMINISTRACIÓN{% endblock %}
+{% block page_heading %}Usuarios{% endblock %}
+{% block page_description %}El historial conserva a sus responsables incluso si una cuenta se desactiva.{% endblock %}
+{% block page_actions %}<a class="button button-dark" href="{% url 'user_new' %}">+ Usuario</a>{% endblock %}
+{% block content %}<div class="panel table-panel data-table"><table><thead><tr><th>Correo</th><th>Nombre visible</th><th>Perfil</th><th>Estado</th><th></th></tr></thead><tbody>{% for profile in profiles %}<tr><td>{{ profile.user.username }}</td><td>{{ profile.alias }}</td><td>{{ profile.get_role_display }}</td><td>{% if profile.user.is_active %}Activo{% else %}Inactivo{% endif %}</td><td><a href="{% url 'user_edit' profile.pk %}">Editar</a></td></tr>{% endfor %}</tbody></table></div>{% endblock %}

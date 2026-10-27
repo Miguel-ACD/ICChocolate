@@ -60,6 +60,29 @@ class Presentation(models.Model):
         return f"{self.product.name} · {self.name}"
 
 
+class Equivalence(models.Model):
+    """Directed, immutable content-equivalent conversion rule."""
+
+    source = models.ForeignKey(Presentation, on_delete=models.PROTECT, related_name="conversion_sources")
+    target = models.ForeignKey(Presentation, on_delete=models.PROTECT, related_name="conversion_targets")
+    source_units = models.BigIntegerField(validators=[MinValueValidator(1)])
+    target_units = models.BigIntegerField(validators=[MinValueValidator(1)])
+    active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=Q(source_units__gt=0), name="equivalence_source_positive"),
+            models.CheckConstraint(condition=Q(target_units__gt=0), name="equivalence_target_positive"),
+            models.CheckConstraint(condition=~Q(source=models.F("target")), name="equivalence_distinct_presentations"),
+            models.UniqueConstraint(fields=["source", "target"], condition=Q(active=True), name="unique_active_equivalence_pair"),
+        ]
+
+    def __str__(self):
+        return f"{self.source.code} {self.source_units} → {self.target.code} {self.target_units}"
+
+
 class Location(models.Model):
     code = models.CharField(max_length=40, unique=True)
     name = models.CharField(max_length=100)
@@ -94,17 +117,46 @@ class Movement(models.Model):
         CONSUMPTION = "CONSUMO", "Consumo"
         WASTE = "MERMA", "Merma"
         TRANSFER = "TRASLADO", "Traslado"
+        CONVERSION = "CONVERSION", "Conversión"
+        REVERSAL = "REVERSO", "Reverso"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     idempotency_key = models.UUIDField(unique=True)
     request_hash = models.CharField(max_length=64)
     type = models.CharField(max_length=10, choices=Type.choices)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    confirmed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, related_name="confirmed_movements")
+    equivalence = models.ForeignKey(Equivalence, on_delete=models.PROTECT, null=True, blank=True)
+    equivalence_snapshot = models.JSONField(null=True, blank=True)
+    reversal_of = models.OneToOneField("self", on_delete=models.PROTECT, null=True, blank=True, related_name="reversal")
     reason = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-created_at"]
+
+
+class MovementDraft(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = "BORRADOR", "Borrador"
+        CONFIRMED = "CONFIRMADO", "Confirmado"
+        CANCELLED = "CANCELADO", "Cancelado"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    type = models.CharField(max_length=10, choices=Movement.Type.choices)
+    presentation = models.ForeignKey(Presentation, on_delete=models.PROTECT, null=True, blank=True)
+    quantity = models.BigIntegerField()
+    source = models.ForeignKey(Location, on_delete=models.PROTECT)
+    destination = models.ForeignKey(Location, on_delete=models.PROTECT, null=True, blank=True, related_name="destination_drafts")
+    equivalence = models.ForeignKey(Equivalence, on_delete=models.PROTECT, null=True, blank=True)
+    reversal_of = models.ForeignKey(Movement, on_delete=models.PROTECT, null=True, blank=True, related_name="reversal_drafts")
+    reason = models.TextField(blank=True)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.DRAFT)
+    version = models.PositiveIntegerField(default=1)
+    movement = models.OneToOneField(Movement, on_delete=models.PROTECT, null=True, blank=True, related_name="source_draft")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
 class MovementLine(models.Model):

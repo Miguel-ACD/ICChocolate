@@ -1,0 +1,12 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Catálogo · ICChocolate{% endblock %}
+{% block breadcrumb %}Catálogo{% endblock %}
+{% block page_label %}ADMINISTRACIÓN{% endblock %}
+{% block page_heading %}Catálogo y ubicaciones{% endblock %}
+{% block page_description %}El contenido de una presentación con historial no se cambia; crea una nueva si cambia la unidad.{% endblock %}
+{% block page_actions %}<a class="button button-dark" href="{% url 'product_new' %}">+ Producto</a> <a class="button button-outline" href="{% url 'presentation_new' %}">+ Presentación</a>{% endblock %}
+{% block content %}
+<div class="panel table-panel data-table"><h2>Productos</h2><table><thead><tr><th>Código</th><th>Nombre</th><th>Estado</th><th></th></tr></thead><tbody>{% for item in products %}<tr><td>{{ item.code }}</td><td>{{ item.name }}</td><td>{% if item.active %}Activo{% else %}Inactivo{% endif %}</td><td><a href="{% url 'product_edit' item.pk %}">Editar</a></td></tr>{% endfor %}</tbody></table></div>
+<div class="panel table-panel data-table"><h2>Presentaciones</h2><table><thead><tr><th>Código</th><th>Producto</th><th>Unidad</th><th>Estado</th><th></th></tr></thead><tbody>{% for item in presentations %}<tr><td>{{ item.code }}</td><td>{{ item.product.name }}</td><td>{{ item.unit_description }}</td><td>{% if item.active %}Activa{% else %}Inactiva{% endif %}</td><td><a href="{% url 'presentation_edit' item.pk %}">Editar</a></td></tr>{% endfor %}</tbody></table></div>
+<div class="panel table-panel data-table"><h2>Ubicaciones</h2><table><thead><tr><th>Código</th><th>Nombre</th><th>Estado</th><th></th></tr></thead><tbody>{% for item in locations %}<tr><td>{{ item.code }}</td><td>{{ item.name }}</td><td>{% if item.active %}Activa{% else %}Inactiva{% endif %}</td><td><a href="{% url 'location_edit' item.pk %}">Editar</a></td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

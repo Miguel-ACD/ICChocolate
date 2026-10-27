@@ -50,3 +50,11 @@ La fase 1 arrancó `db` y `web` localmente. `sensor-gateway` quedó detenido. La
 - `QA.md` describe la primera demo del 19 de octubre; su lista de límites es histórica y no refleja la recepción posterior del ESP32. Este archivo registra la línea de base actual.
 
 La fase 1 queda cerrada con las pruebas anteriores. La fase 2 comenzará por modelar equivalencias y reversos sin alterar los movimientos históricos ni los datos del volumen existente.
+
+## Cierre de la fase 2 (27 de octubre de 2026)
+
+La fase 2 añadió equivalencias dirigidas, conversiones atómicas, reversos completos con motivo, borradores persistentes con versión, administración de catálogo y cuentas, y dos equivalencias ficticias idempotentes. Se separó autor del borrador y confirmador en los movimientos nuevos. Los movimientos anteriores y las lecturas del sensor se conservaron.
+
+Se creó un respaldo privado de PostgreSQL antes de aplicar la migración `0005`; no se modificó ni borró el volumen. La prueba `scripts/verify_phase2.ps1` pasó: 55 pruebas automatizadas en una base temporal de PostgreSQL, formularios y permisos HTTP para ambos roles, reinicio y comparación de datos. La base habitual siguió con 6 movimientos, 59 lecturas y 57 unidades; contiene 2 equivalencias activas. Web y DB están activos localmente; gateway y Funnel siguen apagados.
+
+Alcance pendiente para fases posteriores: múltiples renglones de una foto y confirmación conjunta en fase 5; identidad y zonas de dispositivos en fase 3; alertas en fase 4. La fase 2 no declara esos recorridos completados.

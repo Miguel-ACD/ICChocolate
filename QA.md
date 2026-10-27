@@ -1,5 +1,7 @@
 # QA de la primera demo
 
+> Registro histórico del 19 de octubre. Para el estado actual, fases y pruebas recientes, consulta `FASES.md`.
+
 ## Resultado comprobado el 19 de octubre de 2026
 
 - La imagen Docker se construyó y PostgreSQL inició con el volumen `postgres_data`.

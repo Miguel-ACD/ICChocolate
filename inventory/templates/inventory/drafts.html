@@ -1,0 +1,13 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Borradores · ICChocolate{% endblock %}
+{% block breadcrumb %}Borradores{% endblock %}
+{% block page_label %}SIN EFECTO EN STOCK{% endblock %}
+{% block page_heading %}Borradores{% endblock %}
+{% block page_description %}Solo los movimientos confirmados cambian las existencias.{% endblock %}
+{% block page_actions %}<a class="button button-dark" href="{% url 'movement_new' %}">+ Movimiento</a>{% endblock %}
+{% block content %}
+<div class="panel table-panel data-table"><table><thead><tr><th>Operación</th><th>Responsable</th><th>Estado</th><th>Versión</th><th>Acciones</th></tr></thead><tbody>
+{% for draft in drafts %}<tr><td>{{ draft.get_type_display }}</td><td>{{ draft.created_by.profile.alias }}</td><td>{{ draft.get_status_display }}</td><td>{{ draft.version }}</td><td>{% if draft.status == 'BORRADOR' %}<a href="{% url 'draft_edit' draft.pk %}">Editar</a> · <a href="{% url 'movement_confirm_id' draft.pk %}">Revisar</a><form method="post" action="{% url 'draft_cancel' draft.pk %}" style="display:inline">{% csrf_token %}<input type="hidden" name="version" value="{{ draft.version }}"><button type="submit">Cancelar</button></form>{% endif %}</td></tr>
+{% empty %}<tr><td colspan="5">No hay borradores.</td></tr>{% endfor %}
+</tbody></table></div>
+{% endblock %}
