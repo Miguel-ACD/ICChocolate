@@ -16,7 +16,7 @@ function Assert-Status($url, $session, $expected) {
     if ($actual -ne $expected) { throw "Respuesta $actual en $url; se esperaba $expected" }
 }
 $cfg = @{}
-Get-Content .env | ForEach-Object { if ($_ -match '^([A-Z_]+)=(.*)$') { $cfg[$matches[1]] = $matches[2] } }
+Get-Content .env -Encoding UTF8 | ForEach-Object { if ($_ -match '^([A-Z_]+)=(.*)$') { $cfg[$matches[1]] = $matches[2] } }
 $base = 'http://127.0.0.1:8001'
 foreach ($role in @('OWNER', 'EMPLOYEE')) {
     $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
@@ -25,7 +25,8 @@ foreach ($role in @('OWNER', 'EMPLOYEE')) {
     if (-not $csrf) { throw 'Falta CSRF de acceso.' }
     $body = @{ username = $cfg["DEMO_${role}_EMAIL"]; password = $cfg["DEMO_${role}_PASSWORD"]; csrfmiddlewaretoken = $csrf }
     $post = Invoke-WebRequest -Uri "$base/accounts/login/" -Method Post -Body $body -WebSession $session -UseBasicParsing
-    if ($post.BaseResponse.RequestMessage.RequestUri.AbsolutePath -ne '/') { throw "Acceso $role falló." }
+    $finalPath = if ($post.BaseResponse.ResponseUri) { $post.BaseResponse.ResponseUri.AbsolutePath } else { $post.BaseResponse.RequestMessage.RequestUri.AbsolutePath }
+    if ($finalPath -ne '/') { throw "Acceso $role falló (ruta final: $finalPath)." }
     Assert-Status "$base/monitoreo/" $session 200
     Assert-Status "$base/api/sensor/ultima/" $session 200
     Assert-Status "$base/api/sensor/historial/" $session 200

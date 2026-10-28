@@ -13,7 +13,7 @@ function Assert-Status($url, $session, $expected) {
 }
 
 $cfg = @{}
-Get-Content .env | ForEach-Object { if ($_ -match '^([A-Z_]+)=(.*)$') { $cfg[$matches[1]] = $matches[2] } }
+Get-Content .env -Encoding UTF8 | ForEach-Object { if ($_ -match '^([A-Z_]+)=(.*)$') { $cfg[$matches[1]] = $matches[2] } }
 $base = 'http://127.0.0.1:8001'
 foreach ($role in @('OWNER', 'EMPLOYEE')) {
     $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
@@ -22,7 +22,8 @@ foreach ($role in @('OWNER', 'EMPLOYEE')) {
     if (-not $csrf) { throw 'Formulario de acceso sin CSRF.' }
     $body = @{ username = $cfg["DEMO_${role}_EMAIL"]; password = $cfg["DEMO_${role}_PASSWORD"]; csrfmiddlewaretoken = $csrf }
     $post = Invoke-WebRequest -Uri "$base/accounts/login/" -Method Post -Body $body -WebSession $session -UseBasicParsing
-    if ($post.BaseResponse.RequestMessage.RequestUri.AbsolutePath -ne '/') { throw "Acceso fallido para $role." }
+    $finalPath = if ($post.BaseResponse.ResponseUri) { $post.BaseResponse.ResponseUri.AbsolutePath } else { $post.BaseResponse.RequestMessage.RequestUri.AbsolutePath }
+    if ($finalPath -ne '/') { throw "Acceso fallido para $role (ruta final: $finalPath)." }
     $admin = if ($role -eq 'OWNER') { 200 } else { 403 }
     foreach ($path in @('/catalogo/', '/catalogo/equivalencias/', '/usuarios/')) {
         Assert-Status "$base$path" $session $admin

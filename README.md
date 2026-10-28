@@ -89,9 +89,10 @@ Para activar Funnel en una instalación nueva de Tailscale: `tailscale funnel --
 
 ```powershell
 docker compose run --rm --no-deps web python manage.py test inventory.tests --noinput
+scripts/verify_phase5.ps1
 ```
 
-Los tests crean su propia base de datos temporal de PostgreSQL. Cubren acceso y permisos, compra, venta, traslado, rechazo de stock insuficiente, operación incompleta, motivo obligatorio, atomicidad e idempotencia. Véase [QA.md](QA.md) para el recorrido manual y el resultado comprobado.
+Los tests crean su propia base de datos temporal de PostgreSQL. Cubren acceso y permisos, compra, venta, traslado, rechazo de stock insuficiente, operación incompleta, motivo obligatorio, atomicidad e idempotencia. El comprobador de fase 5 verifica además las pantallas HTTP de cámara y el estado de Docker sin crear movimientos. Para probar Gemini real con una foto de boleta en la base temporal, usa `docker compose run --rm --no-deps -e PHASE5_LIVE_GEMINI=1 web python manage.py test inventory.tests.test_phase5_live --noinput`; esta prueba opcional consume una solicitud de la cuota gratuita y se omite en CI. Véase [QA.md](QA.md) para el recorrido manual y el resultado comprobado.
 
 La misma suite corre en GitHub Actions en cada cambio de `main` y en cada pull request. El flujo comprueba también que los modelos y las migraciones estén sincronizados.
 

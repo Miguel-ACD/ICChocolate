@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -184,3 +185,65 @@ class PhotoWorkflowTests(TestCase):
                 confirm_photo_group(user=self.user, group_id=doc.group_id, type_=Movement.Type.PURCHASE,
                                     location_id=self.location.pk, rows=rows)
         self.assertEqual(Movement.objects.count(), 0)
+
+    def test_second_line_shortage_rolls_back_first_line_and_photo(self):
+        Stock.objects.create(presentation=self.bar, location=self.location, quantity=2)
+        doc = self.upload()
+        with self.assertRaisesRegex(InventoryError, "Stock insuficiente"):
+            confirm_photo_group(user=self.user, group_id=doc.group_id, type_=Movement.Type.SALE,
+                location_id=self.location.pk, rows=[
+                    {"presentation_id": self.bar.pk, "quantity": 1},
+                    {"presentation_id": self.box.pk, "quantity": 1}])
+        self.assertEqual(Stock.objects.get(presentation=self.bar).quantity, 2)
+        self.assertEqual(Movement.objects.count(), 0)
+        doc.refresh_from_db()
+        self.assertIsNone(doc.movement_id)
+
+    def test_deactivated_presentation_cannot_be_confirmed_from_old_photo(self):
+        doc = self.upload()
+        self.bar.active = False
+        self.bar.save(update_fields=["active"])
+        with self.assertRaisesRegex(InventoryError, "ya no está disponible"):
+            confirm_photo_group(user=self.user, group_id=doc.group_id, type_=Movement.Type.PURCHASE,
+                location_id=self.location.pk, rows=[{"presentation_id": self.bar.pk, "quantity": 1}])
+        self.assertEqual(Movement.objects.count(), 0)
+
+    def test_same_photo_twice_in_one_group_is_rejected_at_confirmation(self):
+        doc = self.upload()
+        with patch("inventory.document_views.extract_document", return_value=[]):
+            self.client.post(reverse("document_review", args=[doc.group_id]), {
+                "action": "add", "kind": "ETIQUETA", "image": photo()})
+        self.assertEqual(PhotoDocument.objects.filter(group_id=doc.group_id).count(), 2)
+        with self.assertRaisesRegex(InventoryError, "ya se utilizó"):
+            confirm_photo_group(user=self.user, group_id=doc.group_id, type_=Movement.Type.PURCHASE,
+                location_id=self.location.pk, rows=[{"presentation_id": self.bar.pk, "quantity": 1}])
+        self.assertEqual(Movement.objects.count(), 0)
+
+    def test_http_repeat_confirmation_does_not_duplicate_stock(self):
+        doc = self.upload()
+        url = reverse("document_review", args=[doc.group_id])
+        body = {"action": "confirm", "type": "COMPRA", "location": self.location.pk,
+                "row_count": "1", "presentation_0": self.bar.pk, "quantity_0": "2"}
+        self.assertEqual(self.client.post(url, body).status_code, 302)
+        self.assertEqual(self.client.post(url, body).status_code, 200)
+        self.assertEqual(Movement.objects.count(), 1)
+        self.assertEqual(Stock.objects.get(presentation=self.bar).quantity, 2)
+
+    def test_http_429_uses_manual_fallback_without_inventory_write(self):
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "fake-test-key"}), patch(
+                "inventory.vision.urlopen", side_effect=HTTPError("https://example.invalid", 429, "", {}, None)):
+            response = self.client.post(reverse("document_new"), {"kind": "BOLETA", "image": photo()})
+        self.assertEqual(response.status_code, 302)
+        doc = PhotoDocument.objects.get()
+        self.assertEqual(doc.extraction_status, "ERROR")
+        self.assertIn("cuota gratuita", doc.extraction_error)
+        self.assertNotIn("fake-test-key", doc.extraction_error)
+        self.assertEqual(Movement.objects.count(), 0)
+
+    def test_other_employee_cannot_attach_photo_to_my_group(self):
+        doc = self.upload()
+        self.client.force_login(self.other)
+        response = self.client.post(reverse("document_review", args=[doc.group_id]), {
+            "action": "add", "kind": "ETIQUETA", "image": photo("green")})
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(PhotoDocument.objects.filter(group_id=doc.group_id).count(), 1)

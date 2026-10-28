@@ -32,7 +32,7 @@ function Wait-ForHealth {
 }
 
 $cfg = @{}
-Get-Content .env | ForEach-Object {
+Get-Content .env -Encoding UTF8 | ForEach-Object {
     if ($_ -match '^([A-Z_]+)=(.*)$') { $cfg[$matches[1]] = $matches[2] }
 }
 foreach ($role in @('OWNER', 'EMPLOYEE')) {
@@ -58,7 +58,8 @@ foreach ($role in @('OWNER', 'EMPLOYEE')) {
     Assert-True ([bool]$csrf) 'No se encontró el token CSRF del formulario.'
     $body = @{ username = $cfg["DEMO_${role}_EMAIL"]; password = $cfg["DEMO_${role}_PASSWORD"]; csrfmiddlewaretoken = $csrf }
     $post = Invoke-WebRequest -Uri "$base/accounts/login/" -Method Post -Body $body -WebSession $session -UseBasicParsing
-    Assert-True ($post.BaseResponse.RequestMessage.RequestUri.AbsolutePath -eq '/') "Falló el acceso HTTP de $role."
+    $finalPath = if ($post.BaseResponse.ResponseUri) { $post.BaseResponse.ResponseUri.AbsolutePath } else { $post.BaseResponse.RequestMessage.RequestUri.AbsolutePath }
+    Assert-True ($finalPath -eq '/') "Falló el acceso HTTP de $role (ruta final: $finalPath)."
     Assert-True ((Get-HttpStatus "$base/inventario/" $session) -eq 200) "$role no puede ver Inventario."
     $expectedAdmin = if ($role -eq 'OWNER') { 200 } else { 403 }
     Assert-True ((Get-HttpStatus "$base/catalogo/productos/nuevo/" $session) -eq $expectedAdmin) "Permiso administrativo incorrecto para $role."
