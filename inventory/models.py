@@ -176,6 +176,35 @@ class MovementLine(models.Model):
         ]
 
 
+class PhotoDocument(models.Model):
+    class Kind(models.TextChoices):
+        RECEIPT = "BOLETA", "Boleta"
+        LABEL = "ETIQUETA", "Etiqueta"
+        OTHER = "OTRO", "Otro"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    movement = models.ForeignKey(Movement, on_delete=models.PROTECT, null=True, blank=True, related_name="photos")
+    group_id = models.UUIDField(default=uuid.uuid4, db_index=True)
+    kind = models.CharField(max_length=8, choices=Kind.choices)
+    image = models.FileField(upload_to="photos/")
+    sha256 = models.CharField(max_length=64, db_index=True)
+    byte_size = models.PositiveIntegerField()
+    width = models.PositiveIntegerField()
+    height = models.PositiveIntegerField()
+    extraction_status = models.CharField(max_length=12, default="PENDIENTE")
+    extraction_provider = models.CharField(max_length=40, blank=True)
+    extraction_items = models.JSONField(default=list)
+    extraction_error = models.CharField(max_length=200, blank=True)
+    extracted_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=["sha256"], condition=Q(movement__isnull=False),
+            name="unique_confirmed_photo_hash")]
+
+
 class SensorDevice(models.Model):
     code = models.CharField(max_length=40, unique=True)
     token_hash = models.CharField(max_length=64, unique=True)

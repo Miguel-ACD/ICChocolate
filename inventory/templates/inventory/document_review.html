@@ -1,0 +1,43 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Revisar fotos · ICChocolate{% endblock %}
+{% block breadcrumb %}Revisar fotos{% endblock %}
+{% block page_label %}REVISIÓN HUMANA{% endblock %}
+{% block page_heading %}Revisar movimiento{% endblock %}
+{% block page_description %}Comprueba cada código y cantidad. Las etiquetas identifican productos, pero no indican cuántos se compraron o vendieron.{% endblock %}
+{% block content %}
+<section class="panel" style="padding:20px;margin-bottom:20px">
+  <h2>Fotos de esta operación</h2>
+  <div style="display:flex;flex-wrap:wrap;gap:16px">
+    {% for doc in docs %}<div style="width:min(100%,260px)">
+      <a href="{% url 'document_image' doc.pk %}" target="_blank" rel="noopener"><img src="{% url 'document_image' doc.pk %}" alt="{{ doc.get_kind_display }} {{ forloop.counter }}" style="display:block;width:100%;height:auto;max-height:220px;object-fit:contain;border:1px solid #ccc"></a>
+      <p>{{ doc.get_kind_display }} · {{ doc.get_extraction_status_display|default:doc.extraction_status }}{% if doc.extraction_provider and doc.extraction_status == 'LISTO' %} · {{ doc.extraction_provider }}{% endif %}</p>
+      {% if doc.extraction_error %}<p class="form-error">{{ doc.extraction_error }}</p>{% endif %}
+      {% if not movement %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="extract"><input type="hidden" name="document_id" value="{{ doc.pk }}"><button class="button button-outline" type="submit">Reintentar lectura</button></form>{% endif %}
+    </div>{% endfor %}
+  </div>
+  {% if not movement %}<form method="post" enctype="multipart/form-data" class="form-stack" style="margin-top:20px">{% csrf_token %}<input type="hidden" name="action" value="add"><div class="field"><label for="extra_kind">Añadir otra foto</label><select id="extra_kind" name="kind"><option value="ETIQUETA">Etiqueta</option><option value="BOLETA">Boleta</option><option value="OTRO">Otro</option></select></div><input type="file" name="image" accept="image/jpeg,image/png" capture="environment" required><button class="button button-outline" type="submit">Añadir foto</button></form>{% endif %}
+</section>
+{% if movement %}<div class="panel" style="padding:20px">Movimiento {{ movement.pk }} confirmado. <a href="{% url 'movement_history' %}">Ver historial</a></div>{% else %}
+<section class="panel" style="padding:20px">
+  <h2>Renglones revisados</h2><p>Corrige las propuestas de IA, completa las cantidades vacías y elimina cualquier propuesta incorrecta dejando la presentación en blanco. Puedes rellenar los renglones vacíos manualmente.</p>
+  <form method="post" class="form-stack">{% csrf_token %}<input type="hidden" name="action" value="confirm"><input id="row_count" type="hidden" name="row_count" value="{{ rows|length }}">
+    <div class="field"><label for="operation_type">Operación</label><select id="operation_type" name="type" required><option value="COMPRA" {% if request.POST.type != 'VENTA' %}selected{% endif %}>Compra / entrada</option><option value="VENTA" {% if request.POST.type == 'VENTA' %}selected{% endif %}>Venta / salida</option></select></div>
+    <div class="field"><label for="location">Ubicación</label><select id="location" name="location" required><option value="">Selecciona ubicación</option>{% for loc in locations %}<option value="{{ loc.pk }}" {% if request.POST.location == loc.pk|stringformat:'s' %}selected{% endif %}>{{ loc.name }}</option>{% endfor %}</select></div>
+    <div id="photo-rows">{% for row in rows %}<div class="photo-row" style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin:14px 0;padding:12px;border:1px solid #ddd;border-radius:8px"><div class="field" style="flex:2;min-width:190px"><label for="presentation_{{ forloop.counter0 }}">Presentación {{ forloop.counter }}</label><select id="presentation_{{ forloop.counter0 }}" name="presentation_{{ forloop.counter0 }}"><option value="">Sin seleccionar / descartar</option>{% for presentation in presentations %}<option value="{{ presentation.pk }}" {% if row.presentation_id == presentation.pk or row.presentation_id == presentation.pk|stringformat:'s' %}selected{% endif %}>{{ presentation.code }} · {{ presentation.product.name }} · {{ presentation.name }}</option>{% endfor %}</select></div><div class="field" style="flex:1;min-width:120px"><label for="quantity_{{ forloop.counter0 }}">Unidades</label><input id="quantity_{{ forloop.counter0 }}" name="quantity_{{ forloop.counter0 }}" type="number" min="1" step="1" value="{{ row.quantity }}"></div>{% if row.code %}<small>IA: {{ row.code }}{% if row.uncertain %} · comprobar{% endif %}</small>{% endif %}</div>{% endfor %}</div>
+    <button class="button button-outline" type="button" id="add-row">+ Renglón</button>
+    <p>Confirma solo después de revisar la foto y todas las cantidades. Un segundo envío no duplicará el movimiento.</p>
+    <button class="button button-dark" type="submit">Confirmar movimiento</button>
+  </form>
+</section>
+<script>
+document.getElementById('add-row').addEventListener('click', function () {
+  const count = document.getElementById('row_count'); const n = Number(count.value);
+  if (n >= 40) return;
+  const source = document.querySelector('.photo-row'); const row = source.cloneNode(true);
+  row.querySelectorAll('select,input').forEach(el => { const stem = el.name.split('_')[0]; el.name = stem + '_' + n; el.id = el.name; el.value = ''; });
+  row.querySelectorAll('label').forEach(label => { const stem = label.htmlFor.split('_')[0]; label.htmlFor = stem + '_' + n; label.textContent = stem === 'quantity' ? 'Unidades' : 'Presentación ' + (n + 1); });
+  row.querySelectorAll('small').forEach(el => el.remove()); document.getElementById('photo-rows').appendChild(row); count.value = n + 1;
+});
+</script>
+{% endif %}
+{% endblock %}

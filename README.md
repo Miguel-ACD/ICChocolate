@@ -57,6 +57,16 @@ Las pruebas automatizadas generan ciclos simulados en PostgreSQL temporal y usan
 
 ## Iniciar en Windows con Docker Desktop
 
+### Registro con fotos (fase 5)
+
+Abre `/documentos/nuevo/` desde el menú **Registrar con fotos**. Toma o elige una foto JPEG/PNG de hasta 5 MB, añade otras fotos si hacen falta y revisa las propuestas de Gemini. La pantalla permite corregir cada presentación y cantidad, descartar propuestas erróneas, añadir renglones manuales y elegir compra o venta y ubicación. **Subir o analizar fotos no modifica stock**: solo la confirmación humana crea un movimiento atómico con todos los renglones y fotos, usuario confirmador y fecha. Repetir la confirmación no duplica stock; una foto idéntica a otra ya confirmada no puede volver a confirmar un movimiento.
+
+`POST /documentos/` sigue disponible para subir `multipart/form-data` con `kind=BOLETA|ETIQUETA|OTRO` e `image`; devuelve identificador y `review_url`. `GET /documentos/<id>/imagen/` exige sesión, perfil activo y autoría o rol dueño. El volumen `photo_data` conserva copias JPEG preparadas sin metadatos al recrear contenedores; las fotos no se publican como contenido estático. La clave `GEMINI_API_KEY` está solo en `.env`, fuera de Git. Si no hay clave, red, respuesta válida o cuota gratuita, el formulario queda disponible para completar manualmente. No se activa facturación de Gemini. En Free Tier, Google puede usar entradas para mejorar sus productos; por ahora se prueban documentos ficticios.
+
+El ensayo inicial de OCR local con Tesseract sobre diez fotos reales solo encontró 4 de 16 códigos esperados al probar varias orientaciones y tratamientos de contraste. Véase `FASES.md`.
+
+La comparación con `gemini-3.6-flash` Free Tier sobre las mismas diez fotos reconoció 16/16 códigos y 8/8 cantidades de boleta sin inventar cantidades para etiquetas. Por eso la demo usa esa API con revisión humana y opción manual. La suite automatizada usa respuestas simuladas y una foto real tomada por celular como archivo de entrada; el benchmark de diez fotos sí consultó la API real. Ninguna prueba automática escribe movimientos en la base habitual.
+
 1. Copia `.env.example` como `.env` y reemplaza **todos** los valores que dicen `replace-with-...` por claves y contraseñas propias. `.env` está excluido del repositorio. También puedes conservar el `.env` local que se entregó junto al proyecto.
 2. En esta carpeta, ejecuta:
 
@@ -78,7 +88,7 @@ Para activar Funnel en una instalación nueva de Tailscale: `tailscale funnel --
 ## Pruebas
 
 ```powershell
-scripts/verify_phase4.ps1
+docker compose run --rm --no-deps web python manage.py test inventory.tests --noinput
 ```
 
 Los tests crean su propia base de datos temporal de PostgreSQL. Cubren acceso y permisos, compra, venta, traslado, rechazo de stock insuficiente, operación incompleta, motivo obligatorio, atomicidad e idempotencia. Véase [QA.md](QA.md) para el recorrido manual y el resultado comprobado.
@@ -112,7 +122,7 @@ inventory/tests/                pruebas automáticas
 compose.yaml                    web + PostgreSQL + gateway + trabajador de alertas
 ```
 
-La lógica de stock se concentra en `register_movement`. Las futuras entradas desde OCR deberán terminar en el mismo servicio **después** de revisión humana. La ingesta ESP32 usa `inventory/sensors.py`, `inventory/device_service.py` y `SensorReading`, sin modificar existencias ni movimientos. El proceso `worker` evalúa desconexiones y despacha la cola SMTP. OCR, chatbot, fotografías y despliegue AWS corresponden a próximas entregas.
+La lógica de stock manual se concentra en `register_movement`; el flujo de fotos usa `confirm_photo_group`, que aplica varios renglones en una sola transacción **después** de revisión humana. La ingesta ESP32 usa `inventory/sensors.py`, `inventory/device_service.py` y `SensorReading`, sin modificar existencias ni movimientos. El proceso `worker` evalúa desconexiones y despacha la cola SMTP. El chatbot y despliegue AWS corresponden a próximas entregas.
 
 ## Fuentes de requisitos
 

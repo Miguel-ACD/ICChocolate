@@ -18,6 +18,8 @@ services:
     build: .
     restart: unless-stopped
     env_file: .env
+    volumes:
+      - photo_data:/app/private_photos
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     ports:
@@ -42,6 +44,8 @@ services:
   worker:
     build: .
     env_file: .env
+    volumes:
+      - photo_data:/app/private_photos
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     depends_on:
@@ -51,3 +55,4 @@ services:
     command: ["python", "manage.py", "alert_worker"]
 volumes:
   postgres_data:
+  photo_data:

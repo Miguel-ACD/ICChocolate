@@ -1,8 +1,12 @@
 from django.urls import include, path
 from inventory import views
-from inventory import sensors, device_views, alert_views
+from inventory import sensors, device_views, alert_views, document_views
 
 urlpatterns = [
+    path("documentos/", document_views.upload_document, name="document_upload"),
+    path("documentos/nuevo/", document_views.document_new, name="document_new"),
+    path("documentos/<uuid:group_id>/revisar/", document_views.document_review, name="document_review"),
+    path("documentos/<uuid:document_id>/imagen/", document_views.document_image, name="document_image"),
     path("", views.dashboard, name="dashboard"),
     path("accounts/login/", views.login_view, name="login"),
     path("accounts/logout/", views.logout_view, name="logout"),

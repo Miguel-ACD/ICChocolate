@@ -20,6 +20,7 @@
         <a href="{% url 'monitoring' %}" class="nav-link {% if page == 'monitoring' %}active{% endif %}">Monitoreo</a>
         <a href="{% url 'alert_list' %}" class="nav-link {% if page == 'alert_list' %}active{% endif %}">Alertas</a>
         <a href="{% url 'draft_list' %}" class="nav-link {% if page == 'draft_list' %}active{% endif %}">Borradores</a>
+        <a href="{% url 'document_new' %}" class="nav-link {% if page == 'document_new' or page == 'document_review' %}active{% endif %}">Registrar con fotos</a>
         <a href="{% url 'conversion_new' %}" class="nav-link {% if page == 'conversion_new' %}active{% endif %}">Convertir presentaciones</a>
       </nav>
       {% if owner %}
