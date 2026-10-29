@@ -1,0 +1,23 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Asistente de consulta · ICChocolate{% endblock %}
+{% block breadcrumb %}Asistente de consulta{% endblock %}
+{% block page_label %}FASE 6 · CONSULTA LOCAL{% endblock %}
+{% block page_heading %}Asistente de consulta{% endblock %}
+{% block page_description %}Consulta datos registrados de inventario, movimientos, sensores y alertas. Las respuestas indican fuente y fecha; aquí no se cambian datos.{% endblock %}
+{% block content %}
+<section class="panel" style="padding:24px;max-width:780px">
+  <form method="post" class="form-stack">{% csrf_token %}
+    <div class="field"><label for="question">Tu pregunta</label><textarea id="question" name="question" rows="3" maxlength="500" required placeholder="¿Cuánto stock hay de BARRA-100?">{{ question }}</textarea></div>
+    <button class="button button-dark" type="submit">Consultar</button>
+  </form>
+  <p style="margin-top:18px;color:var(--muted)">Prueba: «¿Qué representa una unidad de POLVO-1000?», «Últimos movimientos», «Última medición» o «Alertas activas».</p>
+</section>
+{% if error %}<div class="message error" role="alert" style="max-width:780px;margin-top:18px">{{ error }}</div>{% endif %}
+{% if answer %}<section class="panel" style="padding:24px;max-width:780px;margin-top:18px" aria-live="polite">
+  <h2>Respuesta</h2>
+  <p style="line-height:1.7;white-space:pre-line">{{ answer.answer }}</p>
+  {% if answer.stale %}<p><strong>Dato antiguo o no disponible:</strong> comprueba el registro antes de decidir.</p>{% endif %}
+  <small>Consulta: {{ answer.as_of }}</small>
+  {% if answer.sources %}<h3>Fuentes</h3><ul>{% for source in answer.sources %}<li><a href="{{ source.url }}">{{ source.label }}</a></li>{% endfor %}</ul>{% endif %}
+</section>{% endif %}
+{% endblock %}

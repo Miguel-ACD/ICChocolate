@@ -67,6 +67,10 @@ El ensayo inicial de OCR local con Tesseract sobre diez fotos reales solo encont
 
 La comparación con `gemini-3.6-flash` Free Tier sobre las mismas diez fotos reconoció 16/16 códigos y 8/8 cantidades de boleta sin inventar cantidades para etiquetas. Por eso la demo usa esa API con revisión humana y opción manual. La suite automatizada usa respuestas simuladas y una foto real tomada por celular como archivo de entrada; el benchmark de diez fotos sí consultó la API real. Ninguna prueba automática escribe movimientos en la base habitual.
 
+## Asistente local de consulta (fase 6)
+
+Abre `/chat/` desde el menú para preguntar por stock, qué representa una unidad de una presentación, movimientos, última medición o alertas. También existe `POST /api/v1/chat` con JSON `{"question":"Stock de BARRA-100"}` para una sesión autenticada con CSRF. Es un motor local de consultas predefinidas, **sin modelo generativo ni API de pago**. Usa datos existentes de PostgreSQL y devuelve fecha y enlaces a las fuentes; no guarda conversaciones ni ejecuta SQL generado por el usuario. Si hay varias presentaciones pide el código exacto. Una lectura mayor de 180 segundos se indica como antigua. El asistente no puede modificar existencias, umbrales ni dispositivos. Si falla, las pantallas convencionales siguen disponibles.
+
 1. Copia `.env.example` como `.env` y reemplaza **todos** los valores que dicen `replace-with-...` por claves y contraseñas propias. `.env` está excluido del repositorio. También puedes conservar el `.env` local que se entregó junto al proyecto.
 2. En esta carpeta, ejecuta:
 
@@ -90,6 +94,7 @@ Para activar Funnel en una instalación nueva de Tailscale: `tailscale funnel --
 ```powershell
 docker compose run --rm --no-deps web python manage.py test inventory.tests --noinput
 scripts/verify_phase5.ps1
+scripts/verify_phase6.ps1
 ```
 
 Los tests crean su propia base de datos temporal de PostgreSQL. Cubren acceso y permisos, compra, venta, traslado, rechazo de stock insuficiente, operación incompleta, motivo obligatorio, atomicidad e idempotencia. El comprobador de fase 5 verifica además las pantallas HTTP de cámara y el estado de Docker sin crear movimientos. Para probar Gemini real con una foto de boleta en la base temporal, usa `docker compose run --rm --no-deps -e PHASE5_LIVE_GEMINI=1 web python manage.py test inventory.tests.test_phase5_live --noinput`; esta prueba opcional consume una solicitud de la cuota gratuita y se omite en CI. Véase [QA.md](QA.md) para el recorrido manual y el resultado comprobado.

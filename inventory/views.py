@@ -7,7 +7,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.db import IntegrityError, transaction
 from django.db.models import Exists, OuterRef, Sum
 from django.core.paginator import Paginator
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from .forms import AliasForm, ConversionForm, EquivalenceForm, LocationForm, LocationRenameForm, MovementForm, PresentationEditForm, PresentationForm, ProductEditForm, ProductForm, ReversalForm, LocationEditForm, UserCreateForm, UserEditForm
@@ -140,6 +140,13 @@ def movement_confirm(request, draft_id=None):
 def movement_history(request):
     movements = Movement.objects.select_related("created_by__profile", "confirmed_by__profile").prefetch_related("lines").annotate(
         already_reversed=Exists(Movement.objects.filter(reversal_of_id=OuterRef("pk")))).order_by("-created_at", "-pk")
+    movement_id = request.GET.get("movement")
+    if movement_id:
+        try:
+            movement_id = uuid.UUID(movement_id)
+        except (ValueError, TypeError, AttributeError):
+            return HttpResponseBadRequest("Identificador de movimiento inválido.")
+        movements = movements.filter(pk=movement_id)
     page_obj = Paginator(movements, 4).get_page(request.GET.get("page"))
     return render(request, "inventory/history.html", {
         "movements": page_obj.object_list, "page_obj": page_obj,

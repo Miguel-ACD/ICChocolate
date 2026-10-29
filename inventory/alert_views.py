@@ -3,7 +3,7 @@ from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseBadRequest, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET
 from .alerts import change_rule
@@ -38,12 +38,19 @@ def _profile_ok(request):
 def alert_list(request):
     if not _profile_ok(request):
         return HttpResponseForbidden("Cuenta sin perfil autorizado.")
+    selected_episode = None
+    episode_id = request.GET.get("episode")
+    if episode_id:
+        if not episode_id.isascii() or not episode_id.isdecimal() or len(episode_id) > 19:
+            return HttpResponseBadRequest("Identificador de episodio inválido.")
+        selected_episode = get_object_or_404(AlertEpisode.objects.select_related("device"), pk=int(episode_id))
     notifications = AlertNotification.objects.filter(user=request.user, channel=AlertNotification.Channel.WEB).select_related(
         "episode__device").order_by("-created_at", "-pk")
     page = Paginator(notifications, 30).get_page(request.GET.get("page"))
     active = AlertEpisode.objects.filter(status=AlertEpisode.Status.ACTIVE).select_related("device").order_by("device__code")
     return render(request, "inventory/alerts.html", {
         "notifications": page.object_list, "page_obj": page, "active": active,
+        "selected_episode": selected_episode,
         "owner": is_owner(request.user), "smtp_ready": smtp_ready(),
         "email_notifications": AlertNotification.objects.filter(channel=AlertNotification.Channel.EMAIL).select_related("episode__device", "user").order_by("-created_at", "-pk")[:30] if is_owner(request.user) else [],
     })

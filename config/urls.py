@@ -1,8 +1,10 @@
 from django.urls import include, path
 from inventory import views
-from inventory import sensors, device_views, alert_views, document_views
+from inventory import sensors, device_views, alert_views, document_views, chat_views
 
 urlpatterns = [
+    path("chat/", chat_views.chat_page, name="chat_page"),
+    path("api/v1/chat", chat_views.chat_api, name="chat_api"),
     path("documentos/", document_views.upload_document, name="document_upload"),
     path("documentos/nuevo/", document_views.document_new, name="document_new"),
     path("documentos/<uuid:group_id>/revisar/", document_views.document_review, name="document_review"),
