@@ -112,14 +112,18 @@ class PhotoWorkflowTests(TestCase):
                 location_id=self.location.pk, rows=[{"presentation_id": self.bar.pk, "quantity": 1}])
 
     def test_mobile_form_with_gemini_failure_uses_manual_review(self):
-        with patch("inventory.document_views.extract_document", side_effect=VisionUnavailable("Cuota gratuita agotada")):
-            response = self.client.post(reverse("document_new"), {"kind": "BOLETA", "image": photo()})
+        response = self.client.post(reverse("document_new"), {"kind": "BOLETA", "image": photo()})
         self.assertEqual(response.status_code, 302)
         doc = PhotoDocument.objects.get(uploaded_by=self.user)
+        with patch("inventory.document_views.extract_document", side_effect=VisionUnavailable("Cuota gratuita agotada")):
+            response = self.client.post(reverse("document_review", args=[doc.group_id]), {
+                "action": "extract", "document_id": doc.pk})
+        self.assertEqual(response.status_code, 302)
+        doc.refresh_from_db()
         self.assertEqual(doc.extraction_status, "ERROR")
         page = self.client.get(reverse("document_review", args=[doc.group_id]))
         self.assertContains(page, "Cuota gratuita agotada")
-        self.assertContains(page, "capture=\"environment\"")
+        self.assertContains(page, "accept=\"image/jpeg,image/png\"")
         response = self.client.post(reverse("document_review", args=[doc.group_id]), {
             "action": "confirm", "type": "COMPRA", "location": self.location.pk,
             "row_count": "1", "presentation_0": self.bar.pk, "quantity_0": "3"})
@@ -159,9 +163,14 @@ class PhotoWorkflowTests(TestCase):
             with image_path.open("rb") as image:
                 uploaded = SimpleUploadedFile(image_path.name, image.read(), content_type="image/jpeg")
             response = self.client.post(reverse("document_new"), {"kind": "BOLETA", "image": uploaded})
+            doc = PhotoDocument.objects.get(uploaded_by=self.user)
+            self.assertEqual(doc.extraction_status, "PENDIENTE")
+            self.assertEqual(call.call_count, 0)
+            self.client.post(reverse("document_review", args=[doc.group_id]), {
+                "action": "extract", "document_id": doc.pk})
         self.assertEqual(response.status_code, 302)
         self.assertEqual(call.call_count, 1)
-        doc = PhotoDocument.objects.get(uploaded_by=self.user)
+        doc.refresh_from_db()
         self.assertEqual(doc.extraction_status, "LISTO")
         self.assertEqual(len(doc.extraction_items), 4)
         page = self.client.get(reverse("document_review", args=[doc.group_id]))
@@ -230,11 +239,15 @@ class PhotoWorkflowTests(TestCase):
         self.assertEqual(Stock.objects.get(presentation=self.bar).quantity, 2)
 
     def test_http_429_uses_manual_fallback_without_inventory_write(self):
-        with patch.dict("os.environ", {"GEMINI_API_KEY": "fake-test-key"}), patch(
-                "inventory.vision.urlopen", side_effect=HTTPError("https://example.invalid", 429, "", {}, None)):
-            response = self.client.post(reverse("document_new"), {"kind": "BOLETA", "image": photo()})
+        response = self.client.post(reverse("document_new"), {"kind": "BOLETA", "image": photo()})
         self.assertEqual(response.status_code, 302)
         doc = PhotoDocument.objects.get()
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "fake-test-key"}), patch(
+                "inventory.vision.urlopen", side_effect=HTTPError("https://example.invalid", 429, "", {}, None)):
+            response = self.client.post(reverse("document_review", args=[doc.group_id]), {
+                "action": "extract", "document_id": doc.pk})
+        self.assertEqual(response.status_code, 302)
+        doc.refresh_from_db()
         self.assertEqual(doc.extraction_status, "ERROR")
         self.assertIn("cuota gratuita", doc.extraction_error)
         self.assertNotIn("fake-test-key", doc.extraction_error)

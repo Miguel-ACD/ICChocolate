@@ -80,9 +80,6 @@ def document_new(request):
         except PhotoError as exc:
             messages.error(request, str(exc))
         else:
-            error = _extract_with_fallback(document)
-            if error:
-                messages.warning(request, error)
             return redirect("document_review", group_id=document.group_id)
     return render(request, "inventory/document_new.html", {"owner": is_owner(request.user)})
 
@@ -132,8 +129,7 @@ def document_review(request, group_id):
                 except PhotoError as exc:
                     messages.error(request, str(exc))
                 else:
-                    error = _extract_with_fallback(added)
-                    messages.warning(request, error) if error else messages.success(request, "Foto añadida.")
+                    messages.success(request, "Foto añadida. Puedes analizarla con IA o completar los renglones manualmente.")
             return redirect("document_review", group_id=group_id)
         if action == "extract":
             doc = next((d for d in docs if str(d.pk) == request.POST.get("document_id")), None)

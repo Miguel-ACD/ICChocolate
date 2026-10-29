@@ -35,7 +35,7 @@ foreach ($role in @('OWNER', 'EMPLOYEE')) {
     } -WebSession $session -UseBasicParsing
     Assert-True ((Get-FinalPath $post) -eq '/') "Falló el acceso de $role."
     $page = Invoke-WebRequest -Uri "$base/documentos/nuevo/" -WebSession $session -UseBasicParsing
-    Assert-True ($page.StatusCode -eq 200 -and $page.Content.Contains('capture="environment"')) "La cámara no está disponible para $role."
+    Assert-True ($page.StatusCode -eq 200 -and $page.Content.Contains('accept="image/jpeg,image/png"') -and -not $page.Content.Contains('capture="environment"')) "El selector de fotos o archivos no está disponible para $role."
     Assert-True ((Get-Status "$base/inventario/" $session) -eq 200) "Inventario no está disponible para $role."
     Assert-True ((Get-Status "$base/documentos/00000000-0000-4000-8000-000000000001/revisar/" $session) -eq 404) 'Una revisión inexistente no devolvió 404.'
     $uploadCsrf = [regex]::Match($page.Content, 'name="csrfmiddlewaretoken" value="([^"]+)"').Groups[1].Value

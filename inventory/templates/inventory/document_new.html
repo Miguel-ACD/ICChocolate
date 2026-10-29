@@ -8,7 +8,7 @@
 <section class="panel" style="padding:24px;max-width:680px">
   <form method="post" enctype="multipart/form-data" class="form-stack">{% csrf_token %}
     <div class="field"><label for="kind">Tipo de documento</label><select id="kind" name="kind" required><option value="BOLETA">Boleta</option><option value="ETIQUETA">Etiqueta</option><option value="OTRO">Otro</option></select></div>
-    <div class="field"><label for="image">Foto JPEG o PNG</label><input id="image" name="image" type="file" accept="image/jpeg,image/png" capture="environment" required><small>Máximo 5 MB. Puedes añadir otras fotos después.</small></div>
+    <div class="field"><label for="image">Tomar foto o elegir archivo JPEG/PNG</label><input id="image" name="image" type="file" accept="image/jpeg,image/png" required><small>Máximo 5 MB. Puedes añadir otras fotos después.</small></div>
     <button class="button button-dark" type="submit">Subir y revisar →</button>
   </form>
 </section>

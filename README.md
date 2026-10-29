@@ -59,7 +59,7 @@ Las pruebas automatizadas generan ciclos simulados en PostgreSQL temporal y usan
 
 ### Registro con fotos (fase 5)
 
-Abre `/documentos/nuevo/` desde el menú **Registrar con fotos**. Toma o elige una foto JPEG/PNG de hasta 5 MB, añade otras fotos si hacen falta y revisa las propuestas de Gemini. La pantalla permite corregir cada presentación y cantidad, descartar propuestas erróneas, añadir renglones manuales y elegir compra o venta y ubicación. **Subir o analizar fotos no modifica stock**: solo la confirmación humana crea un movimiento atómico con todos los renglones y fotos, usuario confirmador y fecha. Repetir la confirmación no duplica stock; una foto idéntica a otra ya confirmada no puede volver a confirmar un movimiento.
+Abre `/documentos/nuevo/` desde el menú **Registrar con fotos**. Toma o elige una foto JPEG/PNG de hasta 5 MB. La subida abre de inmediato la revisión; allí puedes pulsar **Analizar con IA** para pedir propuestas a Gemini o completar los renglones manualmente. Añade otras fotos si hacen falta y revisa cada presentación y cantidad, descarta propuestas erróneas y elige compra o venta y ubicación. **Subir o analizar fotos no modifica stock**: solo la confirmación humana crea un movimiento atómico con todos los renglones y fotos, usuario confirmador y fecha. Repetir la confirmación no duplica stock; una foto idéntica a otra ya confirmada no puede volver a confirmar un movimiento.
 
 `POST /documentos/` sigue disponible para subir `multipart/form-data` con `kind=BOLETA|ETIQUETA|OTRO` e `image`; devuelve identificador y `review_url`. `GET /documentos/<id>/imagen/` exige sesión, perfil activo y autoría o rol dueño. El volumen `photo_data` conserva copias JPEG preparadas sin metadatos al recrear contenedores; las fotos no se publican como contenido estático. La clave `GEMINI_API_KEY` está solo en `.env`, fuera de Git. Si no hay clave, red, respuesta válida o cuota gratuita, el formulario queda disponible para completar manualmente. No se activa facturación de Gemini. En Free Tier, Google puede usar entradas para mejorar sus productos; por ahora se prueban documentos ficticios.
 
@@ -86,7 +86,11 @@ Abre `/chat/` desde el menú para preguntar por stock, qué representa una unida
 
 `seed_demo` es idempotente: repetirlo no duplica cuentas ni existencias iniciales. Las contraseñas de cuentas ya existentes no cambian al repetirlo.
 
-La web escucha en `127.0.0.1:8001`. El gateway del sensor escucha en `127.0.0.1:8002`, y Tailscale Funnel publica solo esa entrada HTTPS. PostgreSQL no publica un puerto. Si se quiere usar el puente local anterior, se inicia aparte con `python config/lan_bridge.py` mientras la PC mantiene la IP indicada.
+La web escucha en `127.0.0.1:8001`; el puerto `8003` se puede vincular a la IP local de la PC. El gateway del sensor escucha en `127.0.0.1:8002`, y Tailscale Funnel publica solo esa entrada HTTPS. PostgreSQL no publica un puerto. Si se quiere usar el puente local anterior, se inicia aparte con `python config/lan_bridge.py` mientras la PC mantiene la IP indicada.
+
+## Acceso desde celular en la misma red (fase 7)
+
+En el `.env` privado de la PC, establece `ICCHOCOLATE_WEB_BIND` con la IPv4 local de Windows y vuelve a iniciar `web` con Docker Compose. La instalación probada usa `ICCHOCOLATE_WEB_BIND=192.168.18.244`. Conecta el celular a la Wi-Fi **Carlos Win** y abre **http://192.168.18.244:8003**. Inicia sesión con tu cuenta de ICChocolate. **Registrar con fotos** permite tomar una foto o elegir un JPEG/PNG existente; la IA se ejecuta desde la pantalla de revisión. La PC debe permanecer encendida con Docker Desktop y los contenedores activos. Si Windows recibe otra IP, actualiza `ICCHOCOLATE_WEB_BIND` y reinicia `web`; la URL del celular cambiará con ella. Este acceso usa HTTP dentro de la red local, así que utiliza una red de confianza. El puerto `8001` sigue disponible solo en la PC y el `8002` sigue reservado al sensor.
 
 Para activar Funnel en una instalación nueva de Tailscale: `tailscale funnel --bg --yes 8002`. La cuenta debe permitir Funnel. Comprueba `tailscale funnel status` y coloca la URL HTTPS resultante en `REMOTE_INGEST_URL` del `secrets.h` local. La URL es pública; conserva el token privado y cámbialo si se expone. Para detener la publicación: `tailscale funnel reset`.
 ## Pruebas
@@ -95,23 +99,23 @@ Para activar Funnel en una instalación nueva de Tailscale: `tailscale funnel --
 docker compose run --rm --no-deps web python manage.py test inventory.tests --noinput
 scripts/verify_phase5.ps1
 scripts/verify_phase6.ps1
+scripts/verify_phase7.ps1
 ```
 
-Los tests crean su propia base de datos temporal de PostgreSQL. Cubren acceso y permisos, compra, venta, traslado, rechazo de stock insuficiente, operación incompleta, motivo obligatorio, atomicidad e idempotencia. El comprobador de fase 5 verifica además las pantallas HTTP de cámara y el estado de Docker sin crear movimientos. Para probar Gemini real con una foto de boleta en la base temporal, usa `docker compose run --rm --no-deps -e PHASE5_LIVE_GEMINI=1 web python manage.py test inventory.tests.test_phase5_live --noinput`; esta prueba opcional consume una solicitud de la cuota gratuita y se omite en CI. Véase [QA.md](QA.md) para el recorrido manual y el resultado comprobado.
+Los tests crean su propia base de datos temporal de PostgreSQL. Cubren acceso y permisos, compra, venta, traslado, rechazo de stock insuficiente, operación incompleta, motivo obligatorio, atomicidad e idempotencia. El comprobador de fase 5 verifica además el selector de fotos o archivos, las pantallas HTTP y el estado de Docker sin crear movimientos. El de fase 7 repite la suite y los recorridos de fases anteriores, reinicia web y base, compara movimientos, fotos y stock, y comprueba el acceso por la IP local. Requiere al menos una foto ya confirmada en la base habitual. Para probar Gemini real con una foto de boleta en la base temporal, usa `docker compose run --rm --no-deps -e PHASE5_LIVE_GEMINI=1 web python manage.py test inventory.tests.test_phase5_live --noinput`; esta prueba opcional consume una solicitud de la cuota gratuita y se omite en CI. Véase [QA.md](QA.md) para el recorrido manual y el resultado comprobado.
 
 La misma suite corre en GitHub Actions en cada cambio de `main` y en cada pull request. El flujo comprueba también que los modelos y las migraciones estén sincronizados.
 
 ## Respaldo
 
-Detén temporalmente las escrituras de la web antes de un respaldo para tener un punto consistente:
+Guarda el volcado binario dentro del contenedor y cópialo después al directorio privado `backups/`. No redirijas `pg_dump -Fc` con `>` desde Windows PowerShell, porque puede alterar el archivo binario:
 
 ```powershell
-docker compose stop web
-docker compose exec -T db pg_dump -U icchocolate -d icchocolate -Fc > respaldo_icchocolate.dump
-docker compose start web
+docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc -f /tmp/icchocolate.dump && pg_restore -l /tmp/icchocolate.dump >/dev/null'
+docker cp icchocolate-db-1:/tmp/icchocolate.dump backups/icchocolate.dump
 ```
 
-El archivo `respaldo_icchocolate.dump` contiene datos y usuarios: guárdalo de forma privada. Para restaurarlo en una instalación separada, crea una base vacía con las mismas migraciones, detén la web y usa `pg_restore` dentro de `db`; verifica primero el procedimiento sobre una copia. La restauración no forma parte de esta demostración inicial.
+El volcado contiene datos y usuarios; guárdalo de forma privada. Las imágenes viven por separado en el volumen `icchocolate_photo_data` y deben respaldarse también, por ejemplo como un archivo `tar.gz` validado. La fase 7 guardó ambos respaldos en `backups/`, verificó una restauración en volúmenes nuevos de PostgreSQL y fotos, comparó los hashes SHA-256 de ambos archivos y comprobó que Django abre la base restaurada. No borres los volúmenes originales para restaurar.
 
 ## Estructura
 
