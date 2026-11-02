@@ -3,13 +3,28 @@
 {% block breadcrumb %}Registrar con fotos{% endblock %}
 {% block page_label %}FASE 5 · CÁMARA{% endblock %}
 {% block page_heading %}Registrar con fotos{% endblock %}
-{% block page_description %}Fotografía una boleta o etiqueta. La IA propone renglones para revisión; nada cambia en inventario hasta tu confirmación.{% endblock %}
+{% block page_description %}Sube una boleta o etiqueta y revisa la propuesta antes de registrarla.{% endblock %}
 {% block content %}
-<section class="panel" style="padding:24px;max-width:680px">
-  <form method="post" enctype="multipart/form-data" class="form-stack">{% csrf_token %}
-    <div class="field"><label for="kind">Tipo de documento</label><select id="kind" name="kind" required><option value="BOLETA">Boleta</option><option value="ETIQUETA">Etiqueta</option><option value="OTRO">Otro</option></select></div>
-    <div class="field"><label for="image">Tomar foto o elegir archivo JPEG/PNG</label><input id="image" name="image" type="file" accept="image/jpeg,image/png" required><small>Máximo 5 MB. Puedes añadir otras fotos después.</small></div>
-    <button class="button button-dark" type="submit">Subir y revisar →</button>
-  </form>
-</section>
+<div class="photo-workspace">
+  <section class="panel photo-form-panel" aria-labelledby="photo-form-heading">
+    <h2 id="photo-form-heading">Elige la imagen</h2>
+    <p>Usa una foto tomada ahora o un archivo que ya tengas guardado.</p>
+    <form method="post" enctype="multipart/form-data" class="form-stack">{% csrf_token %}
+      <div class="field"><label for="kind">Tipo de documento</label><select id="kind" name="kind" required><option value="BOLETA">Boleta</option><option value="ETIQUETA">Etiqueta</option><option value="OTRO">Otro</option></select></div>
+      <div class="field"><label for="image">Foto o archivo JPEG/PNG</label><input id="image" name="image" type="file" accept="image/jpeg,image/png" required><small>Máximo 5 MB. Puedes añadir otras fotos después.</small></div>
+      <button class="button button-dark" type="submit">Subir y revisar <span aria-hidden="true">→</span></button>
+    </form>
+  </section>
+  <aside class="photo-guide" aria-label="Cómo funciona el registro con fotos">
+    <div class="photo-guide-symbol" aria-hidden="true">{% include 'inventory/ui_icon.html' with icon='document' %}</div>
+    <h2>Tú tienes la última palabra</h2>
+    <p>La IA te ayuda a leer el documento. Comprueba la presentación y las unidades antes de confirmar.</p>
+    <ol>
+      <li><span>1</span>Sube la imagen</li>
+      <li><span>2</span>Revisa o corrige los datos</li>
+      <li><span>3</span>Confirma el movimiento</li>
+    </ol>
+    <small>Tu inventario solo cambia después de la confirmación.</small>
+  </aside>
+</div>
 {% endblock %}

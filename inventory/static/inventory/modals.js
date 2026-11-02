@@ -4,6 +4,22 @@
   let opener = null;
   let previousOverflow = "";
 
+  function initializeMovementFields(root) {
+    const operation = root.querySelector("#id_type");
+    const destination = root.querySelector("#id_destination");
+    const field = destination?.closest(".field");
+    if (!operation || !destination || !field) return;
+    function syncDestination() {
+      const transfer = operation.value === "TRASLADO";
+      field.hidden = !transfer;
+      destination.disabled = !transfer;
+      destination.required = transfer;
+      if (!transfer) destination.value = "";
+    }
+    operation.addEventListener("change", syncDestination);
+    syncDestination();
+  }
+
   function closeModal() {
     if (!activeModal) return;
     activeModal.remove();
@@ -39,6 +55,7 @@
       previousOverflow = document.body.style.overflow;
       document.body.style.overflow = "hidden";
       document.body.appendChild(activeModal);
+      initializeMovementFields(activeModal);
       activeModal.querySelector("input, select, textarea, .modal-close")?.focus();
     } catch (_) {
       window.location.assign(link.href);
@@ -50,4 +67,5 @@
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && activeModal) closeModal();
   });
+  initializeMovementFields(document);
 })();

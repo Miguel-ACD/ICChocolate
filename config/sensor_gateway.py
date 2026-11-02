@@ -35,7 +35,7 @@ class SensorGateway(BaseHTTPRequestHandler):
                 "POST", self.path, body,
                 {"Content-Type": "application/json",
                  "Authorization": self.headers.get("Authorization", ""),
-                 "Host": "127.0.0.1:8001"},
+                 "Host": self.headers.get("Host", "")},
             )
             upstream = connection.getresponse()
             response_body = upstream.read(MAX_BODY + 1)

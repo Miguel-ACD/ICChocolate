@@ -1,0 +1,69 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      retries: 20
+  web:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - photo_data:/app/private_photos
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      DJANGO_ALLOWED_HOSTS: ${PUBLIC_HOST}
+      CSRF_TRUSTED_ORIGINS: https://${PUBLIC_HOST}
+      ICCHOCOLATE_HTTPS: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "60"]
+  sensor-gateway:
+    build: .
+    restart: unless-stopped
+    environment:
+      SENSOR_UPSTREAM_HOST: web
+      SENSOR_UPSTREAM_PORT: "8000"
+      SENSOR_GATEWAY_HOST: 0.0.0.0
+      SENSOR_GATEWAY_PORT: "8002"
+    depends_on:
+      - web
+    command: ["python", "config/sensor_gateway.py"]
+  worker:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - photo_data:/app/private_photos
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["python", "manage.py", "alert_worker"]
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST}
+    volumes:
+      - ./Caddyfile.cloud:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - sensor-gateway
+volumes:
+  postgres_data:
+  photo_data:
+  caddy_data:
+  caddy_config:

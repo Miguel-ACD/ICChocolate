@@ -57,11 +57,22 @@ def monitoring(request):
     now = timezone.now()
     fresh = latest_valid and (now - latest_valid.effective_at).total_seconds() <= 180
     communicating = latest_cycle and (now - latest_cycle.received_at).total_seconds() <= 180
+    from datetime import timedelta
+    chart_cycles = list(cycles.filter(
+        status=SensorReading.Status.VALID,
+        received_at__gte=now - timedelta(days=7),
+    ).order_by("-received_at")[:300]) if device else []
+    chart_points = [
+        {"time": cycle.received_at.isoformat(), "temperature": float(cycle.temperature_c),
+         "humidity": float(cycle.humidity_percent)}
+        for cycle in reversed(chart_cycles)
+    ]
     return render(request, "inventory/monitoring.html", {
         "devices": devices, "device": device, "cycles": cycles[:100], "latest_valid": latest_valid,
         "latest_cycle": latest_cycle, "assignment": assignment, "fresh": fresh,
         "communicating": communicating, "owner": is_owner(request.user),
         "alert_rule": alert_rule, "active_alert": active_alert,
+        "chart_points": chart_points,
     })
 
 

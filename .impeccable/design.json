@@ -1,0 +1,414 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-02T10:02:54-05:00",
+  "title": "Design System: ICChocolate",
+  "extensions": {
+    "colorMeta": {
+      "chocolate": {
+        "role": "primary",
+        "displayName": "Cacao de marca",
+        "tonalRamp": [
+          "oklch(15% 0.025 42)",
+          "oklch(25% 0.045 42)",
+          "oklch(35% 0.065 42)",
+          "oklch(45% 0.080 42)",
+          "oklch(58% 0.075 42)",
+          "oklch(72% 0.055 42)",
+          "oklch(84% 0.035 42)",
+          "oklch(95% 0.012 42)"
+        ]
+      },
+      "action": {
+        "role": "primary",
+        "displayName": "Cacao de acción",
+        "tonalRamp": [
+          "oklch(15% 0.025 42)",
+          "oklch(25% 0.045 42)",
+          "oklch(35% 0.065 42)",
+          "oklch(45% 0.080 42)",
+          "oklch(58% 0.075 42)",
+          "oklch(72% 0.055 42)",
+          "oklch(84% 0.035 42)",
+          "oklch(95% 0.012 42)"
+        ]
+      },
+      "manual-choice": {
+        "role": "primary",
+        "displayName": "Cacao de registro manual",
+        "tonalRamp": [
+          "oklch(15% 0.025 42)",
+          "oklch(25% 0.045 42)",
+          "oklch(35% 0.065 42)",
+          "oklch(45% 0.080 42)",
+          "oklch(58% 0.075 42)",
+          "oklch(72% 0.055 42)",
+          "oklch(84% 0.035 42)",
+          "oklch(95% 0.012 42)"
+        ]
+      },
+      "rose": {
+        "role": "secondary",
+        "displayName": "Albaricoque suave",
+        "tonalRamp": [
+          "oklch(15% 0.025 50)",
+          "oklch(25% 0.045 50)",
+          "oklch(35% 0.065 50)",
+          "oklch(45% 0.080 50)",
+          "oklch(58% 0.075 50)",
+          "oklch(72% 0.055 50)",
+          "oklch(84% 0.035 50)",
+          "oklch(95% 0.012 50)"
+        ]
+      },
+      "stage": {
+        "role": "secondary",
+        "displayName": "Albaricoque de mesa",
+        "tonalRamp": [
+          "oklch(15% 0.025 50)",
+          "oklch(25% 0.045 50)",
+          "oklch(35% 0.065 50)",
+          "oklch(45% 0.080 50)",
+          "oklch(58% 0.075 50)",
+          "oklch(72% 0.055 50)",
+          "oklch(84% 0.035 50)",
+          "oklch(95% 0.012 50)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Papel claro",
+        "tonalRamp": [
+          "oklch(15% 0.025 35)",
+          "oklch(25% 0.045 35)",
+          "oklch(35% 0.065 35)",
+          "oklch(45% 0.080 35)",
+          "oklch(58% 0.075 35)",
+          "oklch(72% 0.055 35)",
+          "oklch(84% 0.035 35)",
+          "oklch(95% 0.012 35)"
+        ]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Crema de fondo",
+        "tonalRamp": [
+          "oklch(15% 0.025 35)",
+          "oklch(25% 0.045 35)",
+          "oklch(35% 0.065 35)",
+          "oklch(45% 0.080 35)",
+          "oklch(58% 0.075 35)",
+          "oklch(72% 0.055 35)",
+          "oklch(84% 0.035 35)",
+          "oklch(95% 0.012 35)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Tinta",
+        "tonalRamp": [
+          "oklch(15% 0.025 42)",
+          "oklch(25% 0.045 42)",
+          "oklch(35% 0.065 42)",
+          "oklch(45% 0.080 42)",
+          "oklch(58% 0.075 42)",
+          "oklch(72% 0.055 42)",
+          "oklch(84% 0.035 42)",
+          "oklch(95% 0.012 42)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Texto de apoyo",
+        "tonalRamp": [
+          "oklch(15% 0.025 42)",
+          "oklch(25% 0.045 42)",
+          "oklch(35% 0.065 42)",
+          "oklch(45% 0.080 42)",
+          "oklch(58% 0.075 42)",
+          "oklch(72% 0.055 42)",
+          "oklch(84% 0.035 42)",
+          "oklch(95% 0.012 42)"
+        ]
+      },
+      "alert-calm": {
+        "role": "state",
+        "displayName": "Salvia sin alertas",
+        "tonalRamp": [
+          "oklch(15% 0.025 145)",
+          "oklch(25% 0.045 145)",
+          "oklch(35% 0.065 145)",
+          "oklch(45% 0.080 145)",
+          "oklch(58% 0.075 145)",
+          "oklch(72% 0.055 145)",
+          "oklch(84% 0.035 145)",
+          "oklch(95% 0.012 145)"
+        ]
+      },
+      "alert-active": {
+        "role": "state",
+        "displayName": "Ámbar de alerta",
+        "tonalRamp": [
+          "oklch(15% 0.025 65)",
+          "oklch(25% 0.045 65)",
+          "oklch(35% 0.065 65)",
+          "oklch(45% 0.080 65)",
+          "oklch(58% 0.075 65)",
+          "oklch(72% 0.055 65)",
+          "oklch(84% 0.035 65)",
+          "oklch(95% 0.012 65)"
+        ]
+      },
+      "chocolate-light": {
+        "role": "neutral",
+        "displayName": "Chocolate Light",
+        "tonalRamp": [
+          "oklch(15% 0.025 42)",
+          "oklch(25% 0.045 42)",
+          "oklch(35% 0.065 42)",
+          "oklch(45% 0.080 42)",
+          "oklch(58% 0.075 42)",
+          "oklch(72% 0.055 42)",
+          "oklch(84% 0.035 42)",
+          "oklch(95% 0.012 42)"
+        ]
+      },
+      "cocoa": {
+        "role": "neutral",
+        "displayName": "Cocoa",
+        "tonalRamp": [
+          "oklch(15% 0.025 42)",
+          "oklch(25% 0.045 42)",
+          "oklch(35% 0.065 42)",
+          "oklch(45% 0.080 42)",
+          "oklch(58% 0.075 42)",
+          "oklch(72% 0.055 42)",
+          "oklch(84% 0.035 42)",
+          "oklch(95% 0.012 42)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "tonalRamp": [
+          "oklch(15% 0.025 35)",
+          "oklch(25% 0.045 35)",
+          "oklch(35% 0.065 35)",
+          "oklch(45% 0.080 35)",
+          "oklch(58% 0.075 35)",
+          "oklch(72% 0.055 35)",
+          "oklch(84% 0.035 35)",
+          "oklch(95% 0.012 35)"
+        ]
+      },
+      "action-hover": {
+        "role": "neutral",
+        "displayName": "Action Hover",
+        "tonalRamp": [
+          "oklch(15% 0.025 42)",
+          "oklch(25% 0.045 42)",
+          "oklch(35% 0.065 42)",
+          "oklch(45% 0.080 42)",
+          "oklch(58% 0.075 42)",
+          "oklch(72% 0.055 42)",
+          "oklch(84% 0.035 42)",
+          "oklch(95% 0.012 42)"
+        ]
+      },
+      "photo": {
+        "role": "neutral",
+        "displayName": "Photo",
+        "tonalRamp": [
+          "oklch(15% 0.025 35)",
+          "oklch(25% 0.045 35)",
+          "oklch(35% 0.065 35)",
+          "oklch(45% 0.080 35)",
+          "oklch(58% 0.075 35)",
+          "oklch(72% 0.055 35)",
+          "oklch(84% 0.035 35)",
+          "oklch(95% 0.012 35)"
+        ]
+      },
+      "alert-calm-ink": {
+        "role": "neutral",
+        "displayName": "Alert Calm Ink",
+        "tonalRamp": [
+          "oklch(15% 0.025 145)",
+          "oklch(25% 0.045 145)",
+          "oklch(35% 0.065 145)",
+          "oklch(45% 0.080 145)",
+          "oklch(58% 0.075 145)",
+          "oklch(72% 0.055 145)",
+          "oklch(84% 0.035 145)",
+          "oklch(95% 0.012 145)"
+        ]
+      },
+      "alert-active-ink": {
+        "role": "neutral",
+        "displayName": "Alert Active Ink",
+        "tonalRamp": [
+          "oklch(15% 0.025 65)",
+          "oklch(25% 0.045 65)",
+          "oklch(35% 0.065 65)",
+          "oklch(45% 0.080 65)",
+          "oklch(58% 0.075 65)",
+          "oklch(72% 0.055 65)",
+          "oklch(84% 0.035 65)",
+          "oklch(95% 0.012 65)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Título de página",
+        "purpose": "Encabezado de la tarea actual; Fraunces variable local."
+      },
+      "title": {
+        "displayName": "Título de área",
+        "purpose": "Organiza paneles y pasos de operación."
+      },
+      "body": {
+        "displayName": "Texto operativo",
+        "purpose": "Lectura continua, formularios y datos."
+      },
+      "label": {
+        "displayName": "Etiqueta",
+        "purpose": "Navegación y controles compactos."
+      }
+    },
+    "shadows": [
+      {
+        "name": "ambient",
+        "value": "0 12px 34px rgba(65, 38, 28, .08)",
+        "purpose": "Variable --shadow del rediseño."
+      },
+      {
+        "name": "button-primary",
+        "value": "0 5px 12px rgba(85, 48, 35, .15)",
+        "purpose": "Relieve de la acción principal."
+      },
+      {
+        "name": "choice-hover",
+        "value": "0 10px 20px rgba(77, 44, 32, .13)",
+        "purpose": "Respuesta al pasar sobre una ruta de registro."
+      },
+      {
+        "name": "menu",
+        "value": "0 18px 42px rgba(49, 31, 24, .16)",
+        "purpose": "Separar los menús de la cabecera."
+      },
+      {
+        "name": "dialog",
+        "value": "0 25px 65px rgba(44, 27, 20, .26)",
+        "purpose": "Capa modal de revisión y formularios."
+      }
+    ],
+    "motion": [
+      {
+        "name": "choice-hover",
+        "value": "transform .18s cubic-bezier(.16, 1, .3, 1), box-shadow .18s cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "Elevación breve de las dos rutas al pasar el cursor."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "header-wrap",
+        "value": "1150px"
+      },
+      {
+        "name": "single-column",
+        "value": "850px"
+      },
+      {
+        "name": "mobile",
+        "value": "620px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botón principal",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Confirma o inicia la acción prioritaria.",
+      "html": "<button class=\"ds-button-primary\">Registrar movimiento</button>",
+      "css": ".ds-button-primary{min-height:43px;padding:10px 17px;border:0;border-radius:10px;background:#704332;color:#fff;font:700 13px 'Segoe UI',Arial,sans-serif;box-shadow:0 5px 12px rgba(85,48,35,.15);cursor:pointer}.ds-button-primary:hover{background:#563326}.ds-button-primary:focus-visible{outline:3px solid #a9593d;outline-offset:3px}.ds-button-primary:disabled{opacity:.5;box-shadow:none;cursor:not-allowed}"
+    },
+    {
+      "name": "Botón de contorno",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Acción secundaria sobre papel crema.",
+      "html": "<button class=\"ds-button-outline\">Ver inventario</button>",
+      "css": ".ds-button-outline{min-height:43px;padding:10px 17px;border:1px solid #ddc8b8;border-radius:10px;background:#fffaf3;color:#624333;font:700 13px 'Segoe UI',Arial,sans-serif;cursor:pointer}.ds-button-outline:hover{background:#f2e4d7}.ds-button-outline:focus-visible{outline:3px solid #a9593d;outline-offset:3px}"
+    },
+    {
+      "name": "Ruta manual",
+      "kind": "card",
+      "refersTo": "action-choice-manual",
+      "description": "Tarjeta de mayor contraste para registrar escribiendo los datos.",
+      "html": "<a class=\"ds-choice-manual\" href=\"#\"><strong>Escribir los datos</strong><span>Compra, venta, traslado, consumo o merma.</span><b>Empezar registro →</b></a>",
+      "css": ".ds-choice-manual{display:flex;flex-direction:column;min-height:202px;padding:23px;border-radius:15px;background:#623d2e;color:#fff9f2;font-family:'Segoe UI',Arial,sans-serif;text-decoration:none;transition:transform .18s cubic-bezier(.16,1,.3,1),box-shadow .18s cubic-bezier(.16,1,.3,1)}.ds-choice-manual strong{font-size:18px}.ds-choice-manual span{margin-top:6px;color:#f3d9c8;font-size:12px}.ds-choice-manual b{margin-top:auto;padding-top:15px;font-size:12px}.ds-choice-manual:hover{transform:translateY(-3px);box-shadow:0 10px 20px rgba(77,44,32,.13)}.ds-choice-manual:focus-visible{outline:3px solid #a9593d;outline-offset:3px}"
+    },
+    {
+      "name": "Ruta con foto",
+      "kind": "card",
+      "refersTo": "action-choice-photo",
+      "description": "Alternativa visible para subir y revisar una propuesta desde una foto.",
+      "html": "<a class=\"ds-choice-photo\" href=\"#\"><strong>Usar una foto</strong><span>Sube una boleta o etiqueta y revisa la propuesta.</span><b>Registrar con foto →</b></a>",
+      "css": ".ds-choice-photo{display:flex;flex-direction:column;min-height:202px;padding:23px;border-radius:15px;background:#fffaf3;color:#4a3028;font-family:'Segoe UI',Arial,sans-serif;text-decoration:none;transition:transform .18s cubic-bezier(.16,1,.3,1),box-shadow .18s cubic-bezier(.16,1,.3,1)}.ds-choice-photo strong{font-size:18px}.ds-choice-photo span{margin-top:6px;color:#755d50;font-size:12px}.ds-choice-photo b{margin-top:auto;padding-top:15px;font-size:12px}.ds-choice-photo:hover{transform:translateY(-3px);box-shadow:0 10px 20px rgba(77,44,32,.13)}.ds-choice-photo:focus-visible{outline:3px solid #a9593d;outline-offset:3px}"
+    },
+    {
+      "name": "Campo de formulario",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Control de entrada para datos revisables.",
+      "html": "<label class=\"ds-field\">Cantidad<input type=\"number\" value=\"12\"></label>",
+      "css": ".ds-field{display:grid;gap:7px;color:#30231e;font:600 13px 'Segoe UI',Arial,sans-serif}.ds-field input{min-height:44px;padding:8px 11px;border:1px solid #d9c7b8;border-radius:9px;background:#fff;color:#30231e;font:14px 'Segoe UI',Arial,sans-serif}.ds-field input:focus{border-color:#9e5f43;box-shadow:0 0 0 3px rgba(158,95,67,.14)}.ds-field input:focus-visible{outline:3px solid #a9593d;outline-offset:3px}"
+    },
+    {
+      "name": "Navegación principal",
+      "kind": "nav",
+      "description": "Enlaces horizontales con página activa subrayada.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Secciones principales\"><a href=\"#\" aria-current=\"page\">Inicio</a><a href=\"#\">Inventario</a><a href=\"#\">Historial</a></nav>",
+      "css": ".ds-nav{display:flex;gap:2px;overflow-x:auto;background:#fffaf3;font-family:'Segoe UI',Arial,sans-serif}.ds-nav a{display:inline-flex;align-items:center;min-height:49px;padding:0 13px;border-bottom:3px solid transparent;color:#624d42;font-size:14px;font-weight:650;text-decoration:none;white-space:nowrap}.ds-nav a:hover{background:#f5eade;color:#30231e}.ds-nav a[aria-current=page]{color:#6a3e2e;border-bottom-color:#b66a4e}.ds-nav a:focus-visible{outline:3px solid #a9593d;outline-offset:3px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Mesa de trabajo de repostería",
+    "overview": "Una superficie luminosa de crema y papel con el cacao como tinta y acción. La interfaz es cálida y serena, pero sigue siendo una herramienta de operación: títulos expresivos, controles familiares, datos legibles y pasos de revisión explícitos. La marca aparece en el color, la tipografía y detalles pequeños, sin ilustración decorativa dominante. La familia cacao y crema es un compromiso de marca. En el escritorio, la opción manual recibe mayor contraste, la ruta con foto queda claramente disponible y la consulta del inventario permanece a la vista.",
+    "keyCharacteristics": [
+      "Papel claro, tinta cacao y acentos albaricoque y salvia.",
+      "Fraunces para títulos; Segoe UI para operación y datos.",
+      "Superficies amplias, bordes suaves y separación por tono.",
+      "Estados y recorrido de confirmación visibles antes de cambiar existencias."
+    ],
+    "rules": [
+      {
+        "name": "The Semantic State Rule",
+        "body": "Los colores de salvia y ámbar se reservan para estados de inventario y alertas; el cacao identifica la acción principal.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Voice Rule",
+        "body": "Fraunces queda en títulos; Segoe UI carga instrucciones, controles, navegación y datos.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Surface Rule",
+        "body": "Paneles y tablas permanecen planos en reposo; reservar el relieve para interacción y superposición.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do mantener cacao y crema como base de cada pantalla nueva.",
+      "Do hacer visible la revisión antes de la confirmación de cualquier movimiento.",
+      "Do usar Fraunces en títulos y Segoe UI en los elementos operativos.",
+      "Do mostrar alertas y estados reales con texto además de color."
+    ],
+    "donts": [
+      "Don't usar salvia o ámbar como adornos que puedan confundirse con un estado.",
+      "Don't convertir todos los paneles en tarjetas elevadas; la profundidad tiene una función.",
+      "Don't presentar una propuesta de foto o IA como cambio de existencias confirmado."
+    ]
+  }
+}

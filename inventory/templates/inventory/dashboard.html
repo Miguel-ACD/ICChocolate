@@ -1,18 +1,49 @@
 {% extends 'inventory/base.html' %}
-{% block title %}Resumen · ICChocolate{% endblock %}
-{% block breadcrumb %}Resumen{% endblock %}
-{% block page_label %}{% endblock %}
-{% block page_heading %}Resumen de inventario{% endblock %}
-{% block page_description %}Consulta las existencias y la actividad reciente de tu operación.{% endblock %}
-{% block page_actions %}<a class="button button-primary" data-modal-open href="{% url 'movement_new' %}">Registrar movimiento <span aria-hidden="true">→</span></a>{% endblock %}
+{% block title %}Inicio · ICChocolate{% endblock %}
+{% block page_heading %}¿Qué registramos hoy?{% endblock %}
+{% block page_description %}Empieza una operación y revísala antes de cambiar las existencias.{% endblock %}
 {% block content %}
-<div class="section-heading first-section"><div><h2>Indicadores principales</h2></div><a class="text-link" href="{% url 'inventory' %}">Ver inventario <span aria-hidden="true">→</span></a></div>
-<section class="stats" aria-label="Indicadores de inventario">
-  <div class="stat"><div class="stat-icon">{% include 'inventory/ui_icon.html' with icon='inventory' %}</div><span>Unidades disponibles</span><strong>{{ total_units }}</strong><small>En todas las ubicaciones</small></div>
-  <div class="stat"><div class="stat-icon">{% include 'inventory/ui_icon.html' with icon='product' %}</div><span>Productos activos</span><strong>{{ products }}</strong><small>En el catálogo</small></div>
-  <div class="stat"><div class="stat-icon">{% include 'inventory/ui_icon.html' with icon='location' %}</div><span>Posiciones con stock</span><strong>{{ positions }}</strong><small>Presentación y ubicación</small></div>
+<section class="workbench" aria-label="Registrar y consultar">
+  <div class="action-stage">
+    <div class="action-stage-heading">
+      <h2>Registrar un movimiento</h2>
+      <p>Elige el camino que te resulte más cómodo.</p>
+    </div>
+    <div class="action-choices">
+      <a class="action-choice action-choice-primary" data-modal-open href="{% url 'movement_new' %}">
+        {% include 'inventory/ui_icon.html' with icon='movement' %}
+        <strong>Escribir los datos</strong>
+        <span>Compra, venta, traslado, consumo o merma.</span>
+        <span class="action-choice-link">Empezar registro <span aria-hidden="true">→</span></span>
+      </a>
+      <a class="action-choice action-choice-photo" href="{% url 'document_new' %}">
+        {% include 'inventory/ui_icon.html' with icon='camera' %}
+        <strong>Usar una foto</strong>
+        <span>Sube una boleta o etiqueta y revisa la propuesta.</span>
+        <span class="action-choice-link">Registrar con foto <span aria-hidden="true">→</span></span>
+      </a>
+    </div>
+    <ol class="review-steps" aria-label="Pasos para registrar">
+      <li><span>1</span> Elige cómo registrar</li>
+      <li><span>2</span> Revisa los datos</li>
+      <li><span>3</span> Confirma el movimiento</li>
+    </ol>
+  </div>
+  <aside class="dashboard-snapshot" aria-label="Estado del inventario">
+    <div class="snapshot-heading"><h2>Tu inventario ahora</h2><a href="{% url 'inventory' %}">Ver inventario <span aria-hidden="true">→</span></a></div>
+    <div class="snapshot-total"><strong>{{ total_units }}</strong><span>unidades disponibles<br>en todas las ubicaciones</span></div>
+    <div class="snapshot-breakdown">
+      <div><strong>{{ products }}</strong><span>productos activos</span></div>
+      <div><strong>{{ positions }}</strong><span>posiciones con stock</span></div>
+    </div>
+    <div class="snapshot-alert {% if active_alerts %}snapshot-alert-active{% endif %}">
+      <span class="snapshot-alert-mark" aria-hidden="true">{% if active_alerts %}{% include 'inventory/ui_icon.html' with icon='warning' %}{% else %}{% include 'inventory/ui_icon.html' with icon='check' %}{% endif %}</span>
+      <div><strong>{% if active_alerts %}{{ active_alerts }} alerta{{ active_alerts|pluralize }} térmica{{ active_alerts|pluralize }} activa{{ active_alerts|pluralize }}{% else %}Sin alertas térmicas activas{% endif %}</strong><a href="{% url 'alert_list' %}">Ver alertas</a></div>
+    </div>
+  </aside>
 </section>
-<p><a href="{% url 'alert_list' %}">Alertas térmicas activas: {{ active_alerts }}</a></p>
-<div class="section-heading"><div><h2>Movimientos recientes <small class="heading-note">Últimos 30</small></h2></div><a class="text-link" href="{% url 'movement_history' %}">Ver historial completo <span aria-hidden="true">→</span></a></div>
-<div class="panel table-panel recent-table"><table><thead><tr><th>Operación</th><th>Presentación</th><th>Responsable</th><th>Fecha</th><th>Hora</th></tr></thead><tbody>{% for movement in recent %}<tr><td><span class="tag tag-{{ movement.type|lower }}">{{ movement.get_type_display }}</span></td><td>{% for line in movement.lines.all %}{{ line.presentation_snapshot }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</td><td>{{ movement.created_by.profile.alias }}</td><td>{{ movement.created_at|date:'d/m/Y' }}</td><td>{{ movement.created_at|time:'H:i' }}</td></tr>{% empty %}<tr><td colspan="5" class="empty">Aún no hay movimientos.</td></tr>{% endfor %}</tbody></table></div>
+<section class="recent-section" aria-labelledby="recent-title">
+  <div class="section-heading"><h2 id="recent-title">Movimientos recientes <small>Últimos 30</small></h2><a class="text-link" href="{% url 'movement_history' %}">Ver todo el historial <span aria-hidden="true">→</span></a></div>
+  <div class="panel table-panel recent-table mobile-card-table"><table><thead><tr><th>Operación</th><th>Presentación</th><th>Responsable</th><th>Fecha</th><th>Hora</th></tr></thead><tbody>{% for movement in recent %}<tr><td><span class="tag tag-{{ movement.type|lower }}">{{ movement.get_type_display }}</span></td><td data-label="Presentación">{% for line in movement.lines.all %}{{ line.presentation_snapshot }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</td><td data-label="Responsable">{{ movement.created_by.profile.alias }}</td><td data-label="Fecha">{{ movement.created_at|date:'d/m/Y' }}</td><td data-label="Hora">{{ movement.created_at|time:'H:i' }}</td></tr>{% empty %}<tr><td colspan="5" class="empty">Aún no hay movimientos. <a href="{% url 'movement_new' %}" data-modal-open>Registra el primero</a>.</td></tr>{% endfor %}</tbody></table></div>
+</section>
 {% endblock %}

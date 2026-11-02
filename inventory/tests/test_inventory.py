@@ -111,6 +111,18 @@ class InventoryFlowTests(TestCase):
         self.assertContains(response, "6")
         self.assertEqual(self.quantity(self.warehouse), 6)
 
+    def test_authenticated_owner_can_switch_to_employee_without_gaining_owner_access(self):
+        self.client.force_login(self.owner)
+        login_page = self.client.get(reverse("login"))
+        self.assertContains(login_page, "Ingresa con otra cuenta")
+        self.assertContains(login_page, "Correo electrónico")
+        response = self.client.post(reverse("login"), {
+            "username": "employee@example.test", "password": "safe-demo-pass-456",
+        })
+        self.assertRedirects(response, reverse("dashboard"))
+        self.assertEqual(int(self.client.session["_auth_user_id"]), self.employee.pk)
+        self.assertEqual(self.client.get(reverse("user_list")).status_code, 403)
+
     def test_user_without_profile_cannot_log_in(self):
         get_user_model().objects.create_user(username="unassigned@example.test", password="safe-demo-pass-789")
         response = self.client.post(reverse("login"), {"username": "unassigned@example.test", "password": "safe-demo-pass-789"})

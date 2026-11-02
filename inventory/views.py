@@ -26,8 +26,6 @@ def profile_required(view):
 
 
 def login_view(request):
-    if request.user.is_authenticated:
-        return redirect("dashboard")
     form = AuthenticationForm(request, data=request.POST or None)
     form.fields["username"].label = "Correo electrónico"
     if request.method == "POST" and form.is_valid():
