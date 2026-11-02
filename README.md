@@ -132,7 +132,15 @@ inventory/tests/                pruebas automáticas
 compose.yaml                    web + PostgreSQL + gateway + trabajador de alertas
 ```
 
-La lógica de stock manual se concentra en `register_movement`; el flujo de fotos usa `confirm_photo_group`, que aplica varios renglones en una sola transacción **después** de revisión humana. La ingesta ESP32 usa `inventory/sensors.py`, `inventory/device_service.py` y `SensorReading`, sin modificar existencias ni movimientos. El proceso `worker` evalúa desconexiones y despacha la cola SMTP. El chatbot y despliegue AWS corresponden a próximas entregas.
+La lógica de stock manual se concentra en `register_movement`; el flujo de fotos usa `confirm_photo_group`, que aplica varios renglones en una sola transacción **después** de revisión humana. La ingesta ESP32 usa `inventory/sensors.py`, `inventory/device_service.py` y `SensorReading`, sin modificar existencias ni movimientos. El proceso `worker` evalúa desconexiones, despacha la cola SMTP y limpia lecturas antiguas.
+
+## Demo AWS (fases 8 y 9)
+
+La instalación de demostración está en `https://44-218-51-27.sslip.io` sobre una instancia Lightsail Linux de 2 GB en `us-east-1`, con IP estática. `compose.cloud.yaml` levanta PostgreSQL, web, trabajador, gateway del ESP32 y Caddy. Solo Caddy publica 80/443; PostgreSQL y el gateway permanecen en la red interna de Docker. `Caddyfile.cloud` dirige la ruta del sensor al gateway y las demás rutas a la web. El firmware usa la misma ruta HTTPS configurada en el `secrets.h` privado; la URL y el token se mantienen fuera de Git.
+
+Para actualizar código, copia el checkout al servidor conservando `.env` privado y los volúmenes, ejecuta `sudo docker compose -f compose.cloud.yaml up -d --build` en `/home/ubuntu/icchocolate` y comprueba `https://44-218-51-27.sslip.io/salud/`. El nombre `sslip.io` depende de un servicio DNS externo gratuito; si cambia la IP, actualiza `PUBLIC_HOST`, DNS y firmware. La configuración HTTPS activa cookies seguras, redirección y HSTS de un día. No se fuerza HSTS para subdominios ni precarga porque este nombre es compartido.
+
+El trabajador borra diariamente lecturas con más de siete días. Conserva las lecturas referenciadas por episodios de alerta. La página Monitoreo dibuja puntos de temperatura y humedad válidas de los últimos siete días. Los respaldos privados de la fase final están en `backups/icchocolate_fase9_20261102.dump` y `backups/icchocolate_fase9_photos_20261102.tar.gz`, ignorados por Git. La aplicación cloud no depende de que la PC Windows permanezca encendida.
 
 ## Fuentes de requisitos
 
