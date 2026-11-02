@@ -1,4 +1,4 @@
-{$PUBLIC_HOST} {
+{$PUBLIC_HOST}, {$STORE_HOST} {
     encode zstd gzip
     @sensor path /api/sensor/lecturas/ /api/v1/dispositivos/me/ciclos
     handle @sensor {
@@ -7,4 +7,8 @@
     handle {
         reverse_proxy web:8000
     }
+}
+
+www.icchocolate.lat {
+    redir https://icchocolate.lat{uri} permanent
 }

@@ -17,8 +17,8 @@ services:
       - photo_data:/app/private_photos
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      DJANGO_ALLOWED_HOSTS: ${PUBLIC_HOST}
-      CSRF_TRUSTED_ORIGINS: https://${PUBLIC_HOST}
+      DJANGO_ALLOWED_HOSTS: ${PUBLIC_HOST},${STORE_HOST}
+      CSRF_TRUSTED_ORIGINS: https://${PUBLIC_HOST},https://${STORE_HOST}
       ICCHOCOLATE_HTTPS: "1"
     depends_on:
       db:
@@ -55,6 +55,7 @@ services:
       - "443:443"
     environment:
       PUBLIC_HOST: ${PUBLIC_HOST}
+      STORE_HOST: ${STORE_HOST}
     volumes:
       - ./Caddyfile.cloud:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
