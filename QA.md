@@ -37,3 +37,24 @@
 ## Límites de esta etapa
 
 La demo todavía no hace OCR, carga de fotografías, conversiones, correcciones de movimientos confirmados, ingestión ESP32, alertas, correo, chatbot ni despliegue AWS. Las pantallas no muestran mediciones ficticias como si provinieran de hardware real.
+
+## Preparación del cierre final (11 de noviembre de 2026)
+
+Las fases 1 a 9 se implementaron. El 11 de noviembre la suite local encontró **119 pruebas**: 118 pasaron y se omitió una prueba externa opcional de Gemini. La base de pruebas de PostgreSQL se creó y destruyó sin modificar el inventario habitual.
+
+Se restauró el respaldo final `backups/icchocolate_fase9_20261102.dump` en el volumen aislado `icchocolate_fase9_restore_20261111_postgres`: **10 movimientos, 3 documentos fotográficos y 220 lecturas**. Las fotos se extrajeron al volumen aislado `icchocolate_fase9_restore_20261111_photos`; los tres SHA-256 coincidieron con los registros de la base. Django abrió la copia, `migrate --check` y `check` pasaron. Los volúmenes normales no se reemplazaron.
+
+`https://icchocolate.lat/salud/` respondió 200 con `database: ok`. `https://www.icchocolate.lat/salud/` respondió 301 hacia el dominio principal con certificado válido. Al reiniciar AWS se detectó un defecto de integración: el gateway omitía `X-Forwarded-Proto: https` al transmitir los POST del ESP32 a Django, que contestaba 301. Se corrigió el gateway, se añadieron dos pruebas y se desplegó. Una solicitud sin token recibió 401 en vez de 301. El ESP32 físico en COM30 envió un ciclo nuevo `VALIDO` el **11 de noviembre a las 18:00:39 de Lima**, con **27.60 °C y 64.33 % HR**, registrado en PostgreSQL de AWS. Esta lectura es real; las lecturas de la suite pertenecen a la base temporal.
+
+Se comprobó otro ciclo real a las **18:03:39 de Lima**, con **27.65 °C y 66.00 % HR**. Tras reactivar el trabajador, la base conservaba 20 lecturas recientes conforme a la retención de siete días. Se crearon `backups/icchocolate_pre_final_20261111.dump` y `backups/icchocolate_pre_final_photos_20261111.tar.gz`; se validaron los archivos y sus SHA-256 coincidieron con los del servidor. Ambos están excluidos de Git. La restauración completa comprobada arriba corresponde al respaldo del 2 de noviembre; el respaldo posterior a la demo se volverá a restaurar como evidencia final.
+
+## Evidencias finales por capturar
+
+1. Registrar el estado y presupuesto de AWS antes de la demo; iniciar la instancia `icchocolate-demo` y comprobar los cinco servicios, `/salud/` y la redirección de `www`.
+2. Desde computadora y celular, iniciar sesión con dueño y empleado. Mostrar que el empleado registra movimientos, pero recibe 403 al intentar una ruta administrativa del dueño.
+3. Fotografiar una etiqueta o boleta ficticia distinta de una ya confirmada. Subirla, ejecutar IA, revisar o corregir código y cantidad, confirmar una compra y una venta, y comprobar foto, usuario, movimiento e inventario. Revertir las operaciones de prueba con motivo.
+4. Mostrar una medición física nueva del ESP32 en la tabla y en la gráfica, con hora, cuatro muestras y estado. Capturar el aviso real y el correo recibido; distinguir cualquier simulación usada para probar recuperación.
+5. Mostrar el asistente de solo lectura con una respuesta contrastada con Inventario y una consulta sin datos. Mostrar el flujo manual si Gemini no responde.
+6. Guardar un respaldo posterior a la demo de PostgreSQL y fotos; verificar su restauración en volúmenes nuevos. Capturar el resultado de la suite y la ausencia de migraciones pendientes.
+
+La evaluación de OCR disponible usó diez fotos del mismo material ficticio. El usuario decidió usar esas fotos para la entrega final. Se presentará el resultado como prueba de esas muestras, sin afirmar una precisión general; la revisión humana seguirá siendo obligatoria. Para una evaluación general futura harán falta boletas y etiquetas diferentes y una tasa mínima acordada para códigos y cantidades.

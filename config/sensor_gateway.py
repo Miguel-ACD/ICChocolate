@@ -31,11 +31,15 @@ class SensorGateway(BaseHTTPRequestHandler):
         body = self.rfile.read(length)
         connection = HTTPConnection(UPSTREAM_HOST, UPSTREAM_PORT, timeout=10)
         try:
+            upstream_headers = {
+                "Content-Type": "application/json",
+                "Authorization": self.headers.get("Authorization", ""),
+                "Host": self.headers.get("Host", ""),
+            }
+            if self.headers.get("X-Forwarded-Proto", "").lower() == "https":
+                upstream_headers["X-Forwarded-Proto"] = "https"
             connection.request(
-                "POST", self.path, body,
-                {"Content-Type": "application/json",
-                 "Authorization": self.headers.get("Authorization", ""),
-                 "Host": self.headers.get("Host", "")},
+                "POST", self.path, body, upstream_headers,
             )
             upstream = connection.getresponse()
             response_body = upstream.read(MAX_BODY + 1)
