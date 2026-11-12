@@ -46,13 +46,21 @@ def alert_list(request):
         selected_episode = get_object_or_404(AlertEpisode.objects.select_related("device"), pk=int(episode_id))
     notifications = AlertNotification.objects.filter(user=request.user, channel=AlertNotification.Channel.WEB).select_related(
         "episode__device").order_by("-created_at", "-pk")
-    page = Paginator(notifications, 30).get_page(request.GET.get("page"))
+    page = Paginator(notifications, 6).get_page(request.GET.get("page"))
+    email_page = Paginator(
+        AlertNotification.objects.filter(channel=AlertNotification.Channel.EMAIL)
+        .select_related("episode__device", "user").order_by("-created_at", "-pk"), 6
+    ).get_page(request.GET.get("email_page")) if is_owner(request.user) else None
     active = AlertEpisode.objects.filter(status=AlertEpisode.Status.ACTIVE).select_related("device").order_by("device__code")
     return render(request, "inventory/alerts.html", {
-        "notifications": page.object_list, "page_obj": page, "active": active,
+        "notifications": page.object_list, "page_obj": page,
+        "page_numbers": page.paginator.get_elided_page_range(page.number, on_each_side=2, on_ends=1),
+        "active": active,
         "selected_episode": selected_episode,
         "owner": is_owner(request.user), "smtp_ready": smtp_ready(),
-        "email_notifications": AlertNotification.objects.filter(channel=AlertNotification.Channel.EMAIL).select_related("episode__device", "user").order_by("-created_at", "-pk")[:30] if is_owner(request.user) else [],
+        "email_notifications": email_page.object_list if email_page else [],
+        "email_page": email_page,
+        "email_page_numbers": email_page.paginator.get_elided_page_range(email_page.number, on_each_side=2, on_ends=1) if email_page else [],
     })
 
 

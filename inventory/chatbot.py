@@ -1,8 +1,4 @@
-"""Bounded, local, read-only answers over trusted inventory queries.
-
-The user's text selects one of a few fixed queries. It is never SQL, code, or a
-prompt sent to a model. Conversations are not stored.
-"""
+"""Read-only inventory answers, with local Ollama intent classification."""
 
 import re
 import unicodedata
@@ -14,6 +10,10 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from .models import AlertEpisode, AlertRule, Location, Movement, Presentation, Product, SensorDevice, SensorReading, Stock, UserProfile
+from .local_llm import plan
+from .cloud_llm import plan as cloud_plan
+from .chat_guides import GUIDES, guide_response
+from .chat_scope import grounded_guide, in_scope
 
 
 MAX_QUESTION = 500
@@ -41,18 +41,69 @@ def _stamp(value):
     return timezone.localtime(value).strftime("%d/%m/%Y %H:%M:%S")
 
 
-def _result(text, intent, now, sources=(), stale=False):
-    return {"answer": text, "intent": intent, "as_of": timezone.localtime(now).isoformat(),
-            "sources": list(sources), "stale": stale}
+def _result(text, intent, now, sources=(), stale=False, topic=None):
+    result = {"answer": text, "intent": intent, "as_of": timezone.localtime(now).isoformat(),
+              "sources": list(sources), "stale": stale}
+    if topic:
+        result["topic"] = topic
+    return result
 
 
 def _source(label, url):
     return {"label": label, "url": url}
 
 
+def _guide_answer(user, topic, now):
+    guide = guide_response(user, topic)
+    return _result(guide["answer"], "help", now,
+                   [_source(label, url) for label, url in guide["sources"]], topic=topic)
+
+
 def _match_exact(text, rows):
     """Match whole codes, keeping POLVO-100 distinct from POLVO-1000."""
     return [row for row in rows if re.search(r"(?<![\w-])" + re.escape(_normal(row.code)) + r"(?![\w-])", text)]
+
+
+def _location_answer(text, now):
+    locations = list(Location.objects.filter(active=True).order_by("name")[:MAX_CATALOG + 1])
+    if len(locations) > MAX_CATALOG:
+        return _result("Hay demasiadas ubicaciones para enumerarlas aquí. Consulta Inventario.", "locations", now,
+                       [_source("Inventario", "/inventario/")])
+    if not locations:
+        return _result("No hay ubicaciones activas registradas.", "locations", now,
+                       [_source("Inventario", "/inventario/")])
+    details = list(Stock.objects.filter(location__in=locations).values("location_id").annotate(total=Sum("quantity")))
+    totals = {row["location_id"]: row["total"] or 0 for row in details}
+    matched = _match_exact(text, locations)
+    if not matched:
+        matched = [loc for loc in locations if len(_normal(loc.name)) >= 4 and _normal(loc.name) in text]
+    if len(matched) > 1:
+        return _result("Mencionaste varias ubicaciones; consulta una a la vez.", "ambiguous", now)
+    if matched and _has(text, ("cuanto", "cuantos", "cuantas", "stock", "existencias", "unidades", "hay")):
+        loc = matched[0]
+        answer = f"{loc.name}: {totals.get(loc.pk, 0)} unidades registradas."
+    else:
+        names = ", ".join(loc.name for loc in locations[:10])
+        answer = f"Ubicaciones activas: {names}."
+        if len(locations) > 10:
+            answer += f" Hay {len(locations)} en total; se muestran las primeras 10."
+    return _result(answer, "locations", now, [_source("Inventario", "/inventario/")])
+
+
+def _catalog_answer(text, now):
+    products = list(Product.objects.filter(active=True).prefetch_related("presentations")
+                    .order_by("name")[:21])
+    if not products:
+        return _result("Todavía no hay productos activos en el catálogo.", "catalog", now,
+                       [_source("Inventario", "/inventario/")])
+    entries = []
+    for product in products[:20]:
+        codes = ", ".join(p.code for p in product.presentations.all() if p.active)
+        entries.append(f"{product.name} ({product.code}): {codes or 'sin presentaciones activas'}")
+    answer = f"Hay {Product.objects.filter(active=True).count()} productos activos: " + "; ".join(entries) + "."
+    if len(products) > 20:
+        answer += " Se muestran los primeros 20."
+    return _result(answer, "catalog", now, [_source("Inventario", "/inventario/")])
 
 
 def _stock_answer(text, now):
@@ -215,7 +266,7 @@ def _alert_answer(text, now):
     return _result(answer, "alerts", now, sources)
 
 
-def answer_question(user, question, *, now=None):
+def answer_question(user, question, *, now=None, context=None):
     if os.environ.get("CHATBOT_ENABLED", "1") != "1":
         raise ChatUnavailable("El asistente local no está disponible.")
     if not user or not user.is_authenticated or not user.is_active or not UserProfile.objects.filter(user=user).exists():
@@ -224,21 +275,60 @@ def answer_question(user, question, *, now=None):
         raise ChatInputError("Escribe una pregunta de hasta 500 caracteres.")
     now = now or timezone.now()
     text = _normal(question.strip())
-    if _has(text, ("registra", "registrar", "vende", "vender", "comprar", "modifica", "modificar",
-                   "cambia", "cambiar", "actualiza", "actualizar", "borra", "borrar", "elimina", "eliminar",
-                   "crea", "crear", "desactiva", "desactivar", "ignora", "agrega", "agregar", "descuenta",
-                   "descontar", "suma", "resta", "ajusta", "ajustar", "configura", "configurar",
-                   "pon", "poner", "sube", "baja", "reduce", "incrementa", "olvida")) or re.search(r"^(?:por favor\s+)?compra\b|\bhaz(?:me)?\s+una\s+compra\b", text):
-        return _result("Este asistente solo consulta. Para cambiar datos usa los formularios de la aplicación.", "blocked_write", now)
-    if re.search(r"\bhaz(?:me)?\s+(?:una\s+)?(?:venta|salida|entrada)\b", text):
-        return _result("Este asistente solo consulta. Para cambiar datos usa los formularios de la aplicación.", "blocked_write", now)
-    if _has(text, ("alerta", "alertas", "umbral")):
-        return _alert_answer(text, now)
-    if _has(text, ("temperatura", "humedad", "sensor", "sensores", "medicion", "mediciones", "lectura", "lecturas", "ambiente")):
-        return _device_answer(text, now)
-    if _has(text, ("movimiento", "movimientos", "historial", "venta", "ventas", "compra", "compras")):
-        return _movement_answer(text, now)
-    if _has(text, ("stock", "inventario", "existencia", "existencias", "disponible", "disponibles", "unidad", "unidades",
-                   "producto", "productos", "presentacion", "presentaciones", "cuanto", "cuantos", "cuantas", "contiene", "representa")):
-        return _stock_answer(text, now)
-    return _result("Puedo consultar inventario, presentaciones, movimientos, mediciones y alertas. Por ejemplo: «¿Cuánto stock hay de BARRA-100?». Indica un código si hay varias presentaciones.", "unsupported", now)
+    context = context if isinstance(context, str) and context in GUIDES else None
+
+    # Input safety is independent of how the model groups business questions.
+    if re.search(r"\b\d+\s*[+*/=]\s*\d+\b", text) or re.fullmatch(r"[\d\s+*/().?¿=-]+", text):
+        return _result("Este chat consulta ICChocolate; para cálculos usa una calculadora.", "unsupported", now)
+    if _has(text, ("contrasena", "password", "token", "secreto", "secretos", "credencial", "credenciales", "api key", "apikey", "clave api", "prompt", "instrucciones internas")) or re.search(r"(?:\.env\b|\b(?:select|drop|truncate|delete|update|insert)\s+.*\b(?:from|table|where|into)\b|\b(?:ignora|ignore|salta)\b.{0,80}\b(?:reglas|permisos|instrucciones)\b)", text):
+        return _result("No puedo mostrar credenciales ni instrucciones internas. Puedo consultar datos visibles de ICChocolate.", "blocked_sensitive", now)
+    if re.search(r"\b(?:quien eres|que eres|que puedes hacer)\b", text):
+        return _result("Soy el chat de ICChocolate. Te ayudo a consultar datos y a encontrar los pasos y formularios adecuados. No modifico registros por ti.", "identity", now)
+    if text in ("hola", "buenas", "buenos dias", "buenas tardes", "buenas noches", "gracias", "te amo", "te quiero"):
+        return _result("¡Hola! Puedo ayudarte con productos, movimientos, mediciones y formularios de ICChocolate.", "social", now)
+
+    planner = os.environ.get("CHAT_PLANNER", "ollama")
+    if planner == "ollama":
+        scope = in_scope(question.strip())
+        if scope is None:
+            raise ChatUnavailable("El modelo local no está disponible ahora.")
+        if not scope:
+            return _result("Puedo ayudarte con productos, movimientos, mediciones y formularios de ICChocolate.", "unsupported", now)
+        choice = plan(question.strip(), context=context)
+    elif planner == "gemini":
+        choice = cloud_plan(question.strip(), context=context)
+    else:
+        raise ChatUnavailable("El asistente no está configurado.")
+    if choice is None:
+        raise ChatUnavailable("El asistente no está disponible ahora.")
+    intent, mode = choice["intent"], choice.get("mode", "query")
+    if mode == "outside" or intent == "unsupported":
+        return _result("Esa pregunta queda fuera de ICChocolate. Puedo ayudarte con inventario, movimientos, sensores y uso de la aplicación.", "unsupported", now)
+    if intent == "identity":
+        return _result("Soy el chat de ICChocolate. Consulto los registros de la tienda y te oriento por sus formularios; no hago cambios por ti.", "identity", now)
+    if mode in ("how_to", "execute") or intent == "help":
+        topic = choice["topic"] if choice["topic"] in GUIDES else context
+        if topic:
+            if planner == "ollama":
+                topic = grounded_guide(question.strip(), topic)
+            if topic is None:
+                return _result("No estoy seguro de qué acción necesitas. ¿Quieres trabajar con productos, movimientos, sensores o alertas?", "help", now)
+            result = _guide_answer(user, topic, now)
+            if mode == "execute":
+                result["answer"] = "No puedo hacer ese cambio por ti. " + result["answer"]
+            return result
+        return _result("Puedo indicarte los pasos. ¿Quieres trabajar con productos, movimientos, fotos, sensores o alertas?", "help", now)
+
+    # Ollama selects a name; the server runs only these fixed, read-only tools.
+    readers = {
+        "catalog": _catalog_answer,
+        "stock": _stock_answer,
+        "locations": _location_answer,
+        "movements": _movement_answer,
+        "sensor": _device_answer,
+        "alerts": _alert_answer,
+    }
+    reader = readers.get(intent)
+    if reader is None:
+        return _result("No tengo una consulta segura para esa pregunta. ¿Puedes decirme qué dato necesitas?", "unsupported", now)
+    return reader(text, now)

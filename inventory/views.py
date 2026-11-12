@@ -13,7 +13,7 @@ from django.views.decorators.http import require_POST
 from .forms import AliasForm, ConversionForm, EquivalenceForm, LocationForm, LocationRenameForm, MovementForm, PresentationEditForm, PresentationForm, ProductEditForm, ProductForm, ReversalForm, LocationEditForm, UserCreateForm, UserEditForm
 from .models import AlertEpisode, Equivalence, Location, Movement, MovementDraft, Presentation, Product, Stock, UserProfile
 from .services import InventoryError, is_owner, register_movement
-from .phase2 import cancel_draft, confirm_draft, create_draft, create_equivalence, deactivate_equivalence, edit_draft
+from .phase2 import activate_equivalence, cancel_draft, confirm_draft, create_draft, create_equivalence, deactivate_equivalence, edit_draft
 
 
 def profile_required(view):
@@ -103,6 +103,14 @@ def movement_confirm(request, draft_id=None):
     if draft_id is None:
         draft_id = request.session.get("pending_draft_id")
     if not draft_id:
+        request.session.pop("pending_draft_id", None)
+        request.session.pop("pending_draft_version", None)
+        return redirect("movement_new")
+    try:
+        draft_id = uuid.UUID(str(draft_id))
+    except (ValueError, TypeError, AttributeError):
+        request.session.pop("pending_draft_id", None)
+        request.session.pop("pending_draft_version", None)
         return redirect("movement_new")
     draft = MovementDraft.objects.select_related("presentation__product", "source", "destination", "equivalence__target").filter(pk=draft_id).first()
     if draft is None or draft.status == MovementDraft.Status.CANCELLED:
@@ -377,6 +385,21 @@ def equivalence_disable(request, equivalence_id):
         messages.error(request, str(exc))
     else:
         messages.success(request, "Equivalencia desactivada. Las conversiones anteriores conservan su regla original.")
+    return redirect("equivalence_list")
+
+
+@login_required
+@profile_required
+@require_POST
+def equivalence_enable(request, equivalence_id):
+    if not is_owner(request.user):
+        return HttpResponseForbidden("Solo el dueño puede administrar equivalencias.")
+    try:
+        activate_equivalence(user=request.user, equivalence_id=equivalence_id)
+    except InventoryError as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, "Equivalencia activada.")
     return redirect("equivalence_list")
 
 

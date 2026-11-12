@@ -86,6 +86,26 @@ def deactivate_equivalence(*, user, equivalence_id):
         return rule
 
 
+def activate_equivalence(*, user, equivalence_id):
+    _actor(user)
+    if not is_owner(user):
+        raise InventoryError("Solo el dueño puede activar equivalencias.")
+    try:
+        with transaction.atomic():
+            rule = Equivalence.objects.select_for_update().select_related("source__product", "target__product").get(pk=equivalence_id, active=False)
+            if not rule.source.active or not rule.target.active or not rule.source.product.active or not rule.target.product.active:
+                raise InventoryError("Activa primero el producto y sus presentaciones.")
+            if not _content_matches(rule.source, rule.target, rule.source_units, rule.target_units):
+                raise InventoryError("La regla ya no conserva el contenido equivalente.")
+            rule.active = True
+            rule.save(update_fields=["active"])
+            return rule
+    except Equivalence.DoesNotExist:
+        raise InventoryError("Equivalencia inexistente o ya activa.") from None
+    except IntegrityError:
+        raise InventoryError("Ya existe otra equivalencia activa para ese par.") from None
+
+
 def _apply_lines(movement, lines):
     """Caller holds all affected presentation locks and the surrounding transaction."""
     for presentation, location, delta, snapshot, location_snapshot in sorted(lines, key=lambda row: (row[0].pk, row[1].pk)):

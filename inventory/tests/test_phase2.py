@@ -8,7 +8,7 @@ from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 
 from inventory.models import Equivalence, Location, Movement, MovementDraft, MovementLine, Presentation, Product, Stock, UserProfile
-from inventory.phase2 import (cancel_draft, confirm_draft, convert_presentation, create_draft,
+from inventory.phase2 import (activate_equivalence, cancel_draft, confirm_draft, convert_presentation, create_draft,
                               create_equivalence, deactivate_equivalence, edit_draft, reverse_movement)
 from inventory.services import InventoryError, register_movement
 
@@ -54,6 +54,18 @@ class Phase2Tests(TestCase):
         self.assertFalse(Equivalence.objects.filter(source=self.bar, target=self.box).exists())
         with self.assertRaises(InventoryError):
             self.rule()
+
+    def test_inactive_equivalence_can_be_reactivated_by_owner_only(self):
+        rule = self.rule()
+        deactivate_equivalence(user=self.owner, equivalence_id=rule.pk)
+        with self.assertRaises(InventoryError):
+            activate_equivalence(user=self.employee, equivalence_id=rule.pk)
+        self.client.force_login(self.owner)
+        response = self.client.post(reverse("equivalence_enable", args=[rule.pk]))
+        self.assertRedirects(response, reverse("equivalence_list"))
+        rule.refresh_from_db()
+        self.assertTrue(rule.active)
+        self.assertContains(self.client.get(reverse("equivalence_list")), "Desactivar")
 
     def test_conversion_keeps_content_and_ledger_in_one_location(self):
         rule = self.rule()

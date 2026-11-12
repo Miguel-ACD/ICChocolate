@@ -45,6 +45,27 @@ class AlertPhaseTests(TestCase):
     def events(self, channel="WEB"):
         return list(AlertNotification.objects.filter(channel=channel).order_by("created_at", "pk").values_list("event", flat=True))
 
+    def test_alert_tables_paginate_six_rows_independently(self):
+        reading = self.cycle("9.00")
+        rule = AlertRule.objects.get(device=self.device, ended_at__isnull=True)
+        for index in range(7):
+            episode = AlertEpisode.objects.create(device=self.device, rule=rule,
+                start_reading=reading, last_reading=reading, status=AlertEpisode.Status.RECOVERED,
+                started_at=self.t0 - timedelta(minutes=index + 2), closed_at=self.t0,
+                location_snapshot="Almacén", threshold_snapshot=Decimal("10.00"))
+            for channel in (AlertNotification.Channel.WEB, AlertNotification.Channel.EMAIL):
+                AlertNotification.objects.create(episode=episode, user=self.owner,
+                    event=AlertNotification.Event.START, channel=channel,
+                    status=AlertNotification.Status.PENDING, available_at=self.t0,
+                    content={"device": self.device.code, "location": "Almacén", "temperature_c": "9", "threshold_c": "10"})
+        self.client.force_login(self.owner)
+        first = self.client.get(reverse("alert_list"))
+        self.assertEqual(len(first.context["notifications"]), 6)
+        self.assertEqual(len(first.context["email_notifications"]), 6)
+        second = self.client.get(reverse("alert_list") + "?page=2&email_page=2")
+        self.assertEqual(len(second.context["notifications"]), 1)
+        self.assertEqual(len(second.context["email_notifications"]), 1)
+
     def test_exact_limit_humidity_and_first_deviation(self):
         self.cycle("10.00")
         self.assertFalse(AlertEpisode.objects.exists())

@@ -30,6 +30,9 @@
   }
 
   document.addEventListener("click", async (event) => {
+    if (!event.target.closest(".header-menu")) {
+      document.querySelectorAll(".header-menu[open]").forEach(menu => menu.open = false);
+    }
     const close = event.target.closest("[data-modal-close]");
     if (close && activeModal?.contains(close)) {
       event.preventDefault();
@@ -41,6 +44,7 @@
     if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
     if (activeModal || opening) return;
+    document.querySelectorAll(".header-menu[open]").forEach(menu => menu.open = false);
     opening = true;
     opener = link;
     try {
@@ -66,6 +70,10 @@
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && activeModal) closeModal();
+    if (event.key === "Escape") document.querySelectorAll(".header-menu[open]").forEach(menu => menu.open = false);
   });
+  document.querySelectorAll(".header-menu").forEach(menu => menu.addEventListener("toggle", () => {
+    if (menu.open) document.querySelectorAll(".header-menu[open]").forEach(other => { if (other !== menu) other.open = false; });
+  }));
   initializeMovementFields(document);
 })();

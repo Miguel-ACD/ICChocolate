@@ -7,7 +7,7 @@
 {% block page_actions %}<a class="button button-dark" href="{% url 'equivalence_new' %}">+ Equivalencia</a>{% endblock %}
 {% block content %}
 <div class="panel table-panel data-table"><table><thead><tr><th>Origen</th><th>Destino</th><th>Estado</th><th>Acción</th></tr></thead><tbody>
-{% for rule in rules %}<tr><td>{{ rule.source_units }} × {{ rule.source.code }}</td><td>{{ rule.target_units }} × {{ rule.target.code }}</td><td>{% if rule.active %}Activa{% else %}Inactiva{% endif %}</td><td>{% if rule.active %}<form method="post" action="{% url 'equivalence_disable' rule.pk %}">{% csrf_token %}<button type="submit">Desactivar</button></form>{% endif %}</td></tr>
+{% for rule in rules %}<tr><td>{{ rule.source_units }} × {{ rule.source.code }}</td><td>{{ rule.target_units }} × {{ rule.target.code }}</td><td>{% if rule.active %}Activa{% else %}Inactiva{% endif %}</td><td>{% if rule.active %}<form method="post" action="{% url 'equivalence_disable' rule.pk %}">{% csrf_token %}<button class="button button-outline button-small" type="submit">Desactivar</button></form>{% else %}<form method="post" action="{% url 'equivalence_enable' rule.pk %}">{% csrf_token %}<button class="button button-dark button-small" type="submit">Activar</button></form>{% endif %}</td></tr>
 {% empty %}<tr><td colspan="4">Aún no hay equivalencias.</td></tr>{% endfor %}
 </tbody></table></div>
 {% endblock %}

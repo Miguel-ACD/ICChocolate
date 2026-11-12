@@ -12,13 +12,16 @@
 #ifndef REMOTE_INGEST_URL
 #define REMOTE_INGEST_URL ""
 #endif
+#ifndef ICCHOCOLATE_LOCAL_INGEST
+#define ICCHOCOLATE_LOCAL_INGEST 0
+#endif
 
 constexpr uint8_t DHT_PIN = 4;
 constexpr uint8_t ATTEMPTS = 4;
 constexpr unsigned long SAMPLE_GAP_MS = 10000;
 constexpr unsigned long CYCLE_MS = 60000;
 constexpr unsigned long WIFI_TIMEOUT_MS = 12000;
-constexpr char LOCAL_INGEST_URL[] = "http://192.168.18.244:8000/api/v1/dispositivos/me/ciclos";
+constexpr char LOCAL_INGEST_URL[] = "http://192.168.18.244:8003/api/v1/dispositivos/me/ciclos";
 
 DHT dht(DHT_PIN, DHT11);
 
@@ -132,7 +135,7 @@ bool sendRemoteReading(const String &body) {
 
 bool sendReading(const String &body) {
   if (!connectWiFi()) return false;
-  if (REMOTE_INGEST_URL[0] != '\0') {
+  if (!ICCHOCOLATE_LOCAL_INGEST && REMOTE_INGEST_URL[0] != '\0') {
     if (!ensureClock()) return false;
     return sendRemoteReading(body);
   }

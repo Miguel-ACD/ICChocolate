@@ -20,6 +20,8 @@ services:
       DJANGO_ALLOWED_HOSTS: ${PUBLIC_HOST},${STORE_HOST}
       CSRF_TRUSTED_ORIGINS: https://${PUBLIC_HOST},https://${STORE_HOST}
       ICCHOCOLATE_HTTPS: "1"
+      CHAT_PLANNER: gemini
+      GEMINI_CHAT_MODEL: gemini-3.5-flash-lite
     depends_on:
       db:
         condition: service_healthy

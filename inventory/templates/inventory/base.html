@@ -29,8 +29,7 @@
           <nav class="menu-panel" aria-label="Herramientas">
             <a href="{% url 'document_new' %}">{% include 'inventory/ui_icon.html' with icon='camera' %} Registrar con fotos</a>
             <a href="{% url 'draft_list' %}">{% include 'inventory/ui_icon.html' with icon='draft' %} Borradores</a>
-            <a href="{% url 'conversion_new' %}">{% include 'inventory/ui_icon.html' with icon='conversion' %} Convertir presentaciones</a>
-            <a href="{% url 'chat_page' %}">{% include 'inventory/ui_icon.html' with icon='chat' %} Asistente de consulta</a>
+            <a href="{% url 'conversion_new' %}" data-modal-open>{% include 'inventory/ui_icon.html' with icon='conversion' %} Convertir presentaciones</a>
           </nav>
         </details>
         {% if owner %}
@@ -39,10 +38,10 @@
           <nav class="menu-panel" aria-label="Administración">
             <a href="{% url 'catalog_admin' %}">Catálogo</a>
             <a href="{% url 'product_new' %}" data-modal-open>Crear producto</a>
-            <a href="{% url 'presentation_new' %}">Crear presentación</a>
+            <a href="{% url 'presentation_new' %}" data-modal-open>Crear presentación</a>
             <a href="{% url 'equivalence_list' %}">Equivalencias</a>
             <a href="{% url 'location_new' %}" data-modal-open>Crear ubicación</a>
-            <a href="{% url 'location_rename' %}">Renombrar ubicación</a>
+            <a href="{% url 'location_rename' %}" data-modal-open>Renombrar ubicación</a>
             <a href="{% url 'device_list' %}">Dispositivos</a>
             <a href="{% url 'alert_rules' %}">Umbrales</a>
             <a href="{% url 'alert_recipients' %}">Destinatarios</a>
@@ -69,7 +68,16 @@
       </main>
     </div>
   </div>
+  <aside class="chat-widget" aria-label="Chat de ICChocolate">
+    <button type="button" class="chat-launcher" id="chat-launcher" aria-label="Abrir chat" aria-expanded="false" aria-controls="chat-window">{% include 'inventory/ui_icon.html' with icon='robot' %}<span>Chat</span></button>
+    <section class="chat-window" id="chat-window" hidden aria-label="Chat de consultas">
+      <div class="chat-header"><span class="chat-robot">{% include 'inventory/ui_icon.html' with icon='robot' %}</span><div><strong>Chat de ICChocolate</strong><small>Consulta inventario y ambiente</small></div><button type="button" id="chat-close" aria-label="Cerrar chat">×</button></div>
+      <div class="chat-messages" id="chat-messages" role="log" aria-live="polite"><p class="chat-bubble chat-answer">Hola. Puedo ayudarte a consultar datos y a encontrar el formulario correcto. ¿Qué necesitas hacer?</p></div>
+      <form id="chat-form" class="chat-compose">{% csrf_token %}<label class="sr-only" for="chat-question">Escribe tu consulta</label><textarea id="chat-question" rows="2" maxlength="500" required placeholder="Ej.: ¿Cuánto stock hay de BARRA-100?"></textarea><button class="button button-dark" type="submit">Enviar</button></form>
+    </section>
+  </aside>
   {% endwith %}
   <script src="{% static 'inventory/modals.js' %}" defer></script>
+  <script src="{% static 'inventory/chat-widget.js' %}" defer></script>
 </body>
 </html>

@@ -42,6 +42,33 @@ class SensorTests(TestCase):
         self.assertEqual(self.post(changed).status_code, 409)
         self.assertEqual(SensorReading.objects.count(), 1)
 
+    def test_monitoring_shows_five_cycles_per_page(self):
+        for _ in range(7):
+            self.assertEqual(self.post(self.payload()).status_code, 201)
+        self.client.force_login(self.owner)
+        first = self.client.get(reverse("monitoring"))
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(len(first.context["cycles"]), 5)
+        self.assertContains(first, "Páginas de recepciones")
+        second = self.client.get(reverse("monitoring") + "?page=2")
+        self.assertEqual(len(second.context["cycles"]), 2)
+
+    def test_chart_shows_only_latest_twenty_but_history_remains_paginated(self):
+        for index in range(25):
+            payload = self.payload()
+            payload["temperature_c"] = 20 + index / 10
+            self.assertEqual(self.post(payload).status_code, 201)
+        self.client.force_login(self.owner)
+        first = self.client.get(reverse("monitoring"))
+        points = first.context["chart_points"]
+        self.assertEqual(len(points), 20)
+        self.assertEqual(points[0]["temperature"], 20.5)
+        self.assertEqual(points[-1]["temperature"], 22.4)
+        self.assertContains(first, "Últimas 20 mediciones válidas")
+        self.assertEqual(first.context["page_obj"].paginator.count, 25)
+        last = self.client.get(reverse("monitoring") + "?page=5")
+        self.assertEqual(len(last.context["cycles"]), 5)
+
     def test_invalid_measurements_are_rejected(self):
         for field, value in [
             ("temperature_c", -1), ("temperature_c", 51), ("temperature_c", True),

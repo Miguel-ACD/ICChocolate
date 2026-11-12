@@ -3,7 +3,7 @@
 {% block breadcrumb %}Borradores{% endblock %}
 {% block page_label %}SIN EFECTO EN STOCK{% endblock %}
 {% block page_heading %}Borradores{% endblock %}
-{% block page_description %}Solo los movimientos confirmados cambian las existencias.{% endblock %}
+{% block page_description %}Aquí quedan operaciones iniciadas y aún sin confirmar, incluidas conversiones y correcciones. Puedes editarlas, revisarlas o cancelarlas. Solo la confirmación cambia las existencias.{% endblock %}
 {% block page_actions %}<a class="button button-dark" href="{% url 'movement_new' %}">+ Movimiento</a>{% endblock %}
 {% block content %}
 <div class="panel table-panel data-table"><table><thead><tr><th>Operación</th><th>Responsable</th><th>Estado</th><th>Versión</th><th>Acciones</th></tr></thead><tbody>

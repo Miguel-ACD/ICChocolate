@@ -3,9 +3,9 @@
 {% block breadcrumb %}Monitoreo{% endblock %}
 {% block page_label %}AMBIENTE{% endblock %}
 {% block page_heading %}Monitoreo{% endblock %}
-{% block page_description %}Las lecturas describen la zona del sensor, no la temperatura interna del chocolate.{% endblock %}
+{% block page_description %}Observa cómo cambian la temperatura y la humedad en la zona del sensor. Estas lecturas no miden el interior del chocolate.{% endblock %}
 {% block content %}
-<form method="get" class="searchbar device-filter"><label for="device-select">Dispositivo</label><select id="device-select" name="device">{% for item in devices %}<option value="{{ item.code }}" {% if device.pk == item.pk %}selected{% endif %}>{{ item.code }}</option>{% endfor %}</select><button type="submit">Ver historial</button></form>
+<form method="get" class="device-filter"><label for="device-select">Dispositivo</label><select id="device-select" name="device">{% for item in devices %}<option value="{{ item.code }}" {% if device.pk == item.pk %}selected{% endif %}>{{ item.code }}</option>{% endfor %}</select><button class="button button-dark" type="submit">Ver mediciones</button></form>
 {% if device %}
 <section class="panel" aria-label="Estado de {{ device.code }}">
   <h2>{{ device.code }} · {% if assignment %}{{ assignment.location.name }}{% else %}Sin zona actual{% endif %}</h2>
@@ -15,15 +15,15 @@
   {% if latest_cycle.status == 'INVALIDO' %}<p>Último ciclo inválido: {{ latest_cycle.sample_count }} de 4 muestras válidas. La medición válida anterior conserva su fecha.</p>{% endif %}
 </section>
 <section class="panel sensor-chart" aria-label="Gráfica de mediciones">
-  <h2>Mediciones de los últimos 7 días</h2>
-  <p>Cada punto representa un ciclo válido recibido. Temperatura en °C y humedad relativa en %.</p>
-  <div id="sensor-chart" role="img" aria-label="Puntos de temperatura y humedad durante los últimos siete días"></div>
+  <h2>Últimas 20 mediciones válidas</h2>
+  <p>Las líneas muestran la tendencia reciente de temperatura y humedad. La cuadrícula indica valores y horas aproximadas; el historial de recepciones está debajo.</p>
+  <div id="sensor-chart" role="img" aria-label="Tendencia de temperatura y humedad de las últimas veinte mediciones válidas, con ejes de valor y hora"></div>
   {{ chart_points|json_script:"sensor-chart-data" }}
   <script src="{% load static %}{% static 'inventory/sensor-chart.js' %}" defer></script>
 </section>
-<div class="panel table-panel data-table mobile-card-table"><table><thead><tr><th>Recepción</th><th>Ciclo</th><th>Zona medida</th><th>Temperatura</th><th>Humedad</th><th>Muestras</th></tr></thead><tbody>
-{% for cycle in cycles %}<tr><td>{{ cycle.received_at|date:'d/m/Y H:i:s' }}</td><td data-label="Ciclo">{{ cycle.get_status_display }}</td><td data-label="Zona medida">{% if cycle.assignment %}{{ cycle.assignment.location.name }}{% else %}Sin asignación histórica{% endif %}</td><td data-label="Temperatura">{% if cycle.temperature_c != None %}{{ cycle.temperature_c }} °C{% else %}—{% endif %}</td><td data-label="Humedad">{% if cycle.humidity_percent != None %}{{ cycle.humidity_percent }} %{% else %}—{% endif %}</td><td data-label="Muestras">{{ cycle.sample_count }}/4</td></tr>
+<section class="sensor-receptions"><h2>Últimas recepciones</h2><p>Fecha y hora de llegada de cada ciclo, del más reciente al más antiguo.</p><div class="panel table-panel data-table mobile-card-table"><table><thead><tr><th>Hora de recepción</th><th>Medición</th><th>Zona</th><th>Temperatura</th><th>Humedad</th><th>Muestras</th></tr></thead><tbody>
+{% for cycle in cycles %}<tr><td>{{ cycle.received_at|date:'d/m/Y H:i:s' }}</td><td data-label="Medición">{{ cycle.get_status_display }}</td><td data-label="Zona">{% if cycle.assignment %}{{ cycle.assignment.location.name }}{% else %}Sin asignación histórica{% endif %}</td><td data-label="Temperatura">{% if cycle.temperature_c != None %}{{ cycle.temperature_c }} °C{% else %}—{% endif %}</td><td data-label="Humedad">{% if cycle.humidity_percent != None %}{{ cycle.humidity_percent }} %{% else %}—{% endif %}</td><td data-label="Muestras">{{ cycle.sample_count }}/4</td></tr>
 {% empty %}<tr><td colspan="6">Sin ciclos recibidos.</td></tr>{% endfor %}
-</tbody></table></div>
+</tbody></table></div><nav class="pagination" aria-label="Páginas de recepciones"><span class="page-summary">{{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ page_obj.paginator.count }}</span><div class="page-buttons">{% for number in page_numbers %}{% if number == '…' or number == '...' %}<span class="ellipsis">…</span>{% elif number == page_obj.number %}<span class="current" aria-current="page">{{ number }}</span>{% else %}<a href="?device={{ device.code|urlencode }}&amp;page={{ number }}">{{ number }}</a>{% endif %}{% endfor %}</div></nav></section>
 {% else %}<div class="panel">No hay dispositivo seleccionado.</div>{% endif %}
 {% endblock %}

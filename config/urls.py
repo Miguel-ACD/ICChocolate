@@ -50,6 +50,7 @@ urlpatterns = [
     path("catalogo/equivalencias/", views.equivalence_list, name="equivalence_list"),
     path("catalogo/equivalencias/nueva/", views.equivalence_new, name="equivalence_new"),
     path("catalogo/equivalencias/<int:equivalence_id>/desactivar/", views.equivalence_disable, name="equivalence_disable"),
+    path("catalogo/equivalencias/<int:equivalence_id>/activar/", views.equivalence_enable, name="equivalence_enable"),
     path("catalogo/ubicaciones/renombrar/", views.location_rename, name="location_rename"),
     path("catalogo/ubicaciones/nueva/", views.location_new, name="location_new"),
     path("salud/", views.health, name="health"),

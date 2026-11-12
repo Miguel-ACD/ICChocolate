@@ -2,6 +2,11 @@ from django import forms
 from .models import Equivalence, Location, Movement, Presentation, Product, UserProfile
 
 
+def validate_human_name(value):
+    if not any(character.isalpha() for character in value):
+        raise forms.ValidationError("Escribe un nombre con letras, no solo números o símbolos.")
+
+
 class AliasForm(forms.ModelForm):
     class Meta:
         model = UserProfile
@@ -12,6 +17,7 @@ class AliasForm(forms.ModelForm):
         alias = " ".join(self.cleaned_data["alias"].split())
         if len(alias) < 2:
             raise forms.ValidationError("Escribe un alias de al menos dos caracteres.")
+        validate_human_name(alias)
         return alias
 
 
@@ -46,10 +52,10 @@ class MovementForm(forms.Form):
 
 class ProductForm(forms.Form):
     code = forms.CharField(label="Código de producto", max_length=40)
-    name = forms.CharField(label="Nombre de producto", max_length=150)
+    name = forms.CharField(label="Nombre de producto", max_length=150, validators=[validate_human_name])
     description = forms.CharField(label="Descripción", required=False, widget=forms.Textarea(attrs={"rows": 2}))
     presentation_code = forms.CharField(label="Código de presentación", max_length=40)
-    presentation_name = forms.CharField(label="Nombre de presentación", max_length=150)
+    presentation_name = forms.CharField(label="Nombre de presentación", max_length=150, validators=[validate_human_name])
     unit_description = forms.CharField(label="Una unidad representa", max_length=200)
     content_value = forms.DecimalField(label="Contenido por unidad", max_digits=12, decimal_places=3, min_value=0.001)
     content_unit = forms.ChoiceField(label="Unidad de contenido", choices=Presentation.Unit.choices)
@@ -69,7 +75,7 @@ class ProductForm(forms.Form):
 
 class LocationForm(forms.Form):
     code = forms.CharField(label="Código", max_length=40)
-    name = forms.CharField(label="Nombre de ubicación", max_length=100)
+    name = forms.CharField(label="Nombre de ubicación", max_length=100, validators=[validate_human_name])
 
     def clean_code(self):
         code = self.cleaned_data["code"].strip().upper()
@@ -80,7 +86,7 @@ class LocationForm(forms.Form):
 class PresentationForm(forms.Form):
     product = forms.ModelChoiceField(label="Producto", queryset=Product.objects.none())
     code = forms.CharField(label="Código de presentación", max_length=40)
-    name = forms.CharField(label="Nombre", max_length=150)
+    name = forms.CharField(label="Nombre", max_length=150, validators=[validate_human_name])
     unit_description = forms.CharField(label="Una unidad representa", max_length=200)
     content_value = forms.DecimalField(label="Contenido por unidad", max_digits=12, decimal_places=3, min_value=0.001)
     content_unit = forms.ChoiceField(label="Unidad de contenido", choices=Presentation.Unit.choices)
@@ -140,31 +146,31 @@ class ReversalForm(forms.Form):
 
 class LocationRenameForm(forms.Form):
     location = forms.ModelChoiceField(label="Ubicación", queryset=Location.objects.none())
-    name = forms.CharField(label="Nuevo nombre", max_length=100)
+    name = forms.CharField(label="Nuevo nombre", max_length=100, validators=[validate_human_name])
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["location"].queryset = Location.objects.all()
 
 class ProductEditForm(forms.Form):
-    name = forms.CharField(label="Nombre", max_length=150)
+    name = forms.CharField(label="Nombre", max_length=150, validators=[validate_human_name])
     description = forms.CharField(label="Descripción", required=False, widget=forms.Textarea(attrs={"rows": 2}))
     active = forms.BooleanField(label="Activo", required=False)
 
 
 class PresentationEditForm(forms.Form):
-    name = forms.CharField(label="Nombre", max_length=150)
+    name = forms.CharField(label="Nombre", max_length=150, validators=[validate_human_name])
     unit_description = forms.CharField(label="Descripción de una unidad", max_length=200)
     active = forms.BooleanField(label="Activa", required=False)
 
 
 class LocationEditForm(forms.Form):
-    name = forms.CharField(label="Nombre", max_length=100)
+    name = forms.CharField(label="Nombre", max_length=100, validators=[validate_human_name])
     active = forms.BooleanField(label="Activa", required=False)
 
 class UserCreateForm(forms.Form):
     email = forms.EmailField(label="Correo de acceso", max_length=150)
-    alias = forms.CharField(label="Nombre visible", max_length=40)
+    alias = forms.CharField(label="Nombre visible", max_length=40, validators=[validate_human_name])
     role = forms.ChoiceField(label="Perfil", choices=UserProfile.Role.choices)
     password1 = forms.CharField(label="Contraseña inicial", widget=forms.PasswordInput)
     password2 = forms.CharField(label="Repetir contraseña", widget=forms.PasswordInput)
@@ -190,6 +196,6 @@ class UserCreateForm(forms.Form):
 
 
 class UserEditForm(forms.Form):
-    alias = forms.CharField(label="Nombre visible", max_length=40)
+    alias = forms.CharField(label="Nombre visible", max_length=40, validators=[validate_human_name])
     role = forms.ChoiceField(label="Perfil", choices=UserProfile.Role.choices)
     active = forms.BooleanField(label="Cuenta activa", required=False)

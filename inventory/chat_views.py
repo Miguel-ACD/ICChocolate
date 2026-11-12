@@ -51,7 +51,7 @@ def chat_api(request):
         payload = json.loads(request.body)
         if not isinstance(payload, dict):
             raise ValueError
-        answer = answer_question(request.user, payload.get("question"))
+        answer = answer_question(request.user, payload.get("question"), context=payload.get("context"))
     except (ValueError, TypeError, ChatInputError):
         return _private(JsonResponse({"error": "Escribe una pregunta válida de hasta 500 caracteres."}, status=400))
     except (ChatUnavailable, DatabaseError):
