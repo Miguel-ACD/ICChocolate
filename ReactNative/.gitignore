@@ -1,0 +1,6 @@
+
+# React Native / Expo
+node_modules/
+.expo/
+dist/
+.env

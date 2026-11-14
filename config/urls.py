@@ -54,4 +54,6 @@ urlpatterns = [
     path("catalogo/ubicaciones/renombrar/", views.location_rename, name="location_rename"),
     path("catalogo/ubicaciones/nueva/", views.location_new, name="location_new"),
     path("salud/", views.health, name="health"),
+    # --- React Native API ---
+    path("api/mobile/", include("inventory.api.urls")),
 ]

@@ -1,10 +1,64 @@
-"""Transactional temperature episodes and web/email outbox."""
+"""Transactional temperature episodes and web/email/push outbox."""
+import json
+import logging
 from datetime import timedelta
 from decimal import Decimal, InvalidOperation
+from urllib.error import URLError
+from urllib.request import Request, urlopen
+
 from django.db import transaction
 from django.utils import timezone
-from .models import AlertEpisode, AlertNotification, AlertRule, SensorDevice, SensorReading, UserProfile
+from .models import AlertEpisode, AlertNotification, AlertRule, ExpoPushToken, SensorDevice, SensorReading, UserProfile
 from .services import InventoryError, is_owner
+
+logger = logging.getLogger(__name__)
+
+EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
+
+
+def send_expo_push_notifications(episode, event_label):
+    """Send push notifications to all Expo tokens for active users."""
+    tokens = list(
+        ExpoPushToken.objects.filter(user__is_active=True)
+        .values_list("token", flat=True)
+    )
+    if not tokens:
+        return
+
+    body_map = {
+        "INICIO": f"⚠️ Alerta: {episode.device.code} en {episode.location_snapshot} "
+                  f"superó {episode.threshold_snapshot} °C",
+        "RECORDATORIO": f"🔔 Recordatorio: {episode.device.code} sigue sobre "
+                        f"{episode.threshold_snapshot} °C",
+        "RECUPERACION": f"✅ Recuperación: {episode.device.code} volvió a rango normal",
+    }
+    body = body_map.get(event_label, f"Alerta de sensor {episode.device.code}")
+
+    messages = [
+        {
+            "to": token,
+            "title": "ICChocolate – Sensor",
+            "body": body,
+            "data": {"episode_id": episode.pk, "device": episode.device.code},
+            "sound": "default",
+        }
+        for token in tokens
+    ]
+
+    # Expo accepts batches of up to 100
+    for i in range(0, len(messages), 100):
+        batch = messages[i:i + 100]
+        req = Request(
+            EXPO_PUSH_URL,
+            data=json.dumps(batch).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urlopen(req, timeout=10) as resp:
+                resp.read()
+        except (URLError, TimeoutError, OSError) as exc:
+            logger.warning("Expo push failed: %s", exc)
 
 
 def ensure_rule(device, created_by=None):
@@ -34,6 +88,11 @@ def _event(episode, event, reading):
                 episode=episode, user=profile.user, event=event, channel=AlertNotification.Channel.EMAIL,
                 defaults={"recipient_snapshot": profile.alert_email, "content": content,
                           "status": AlertNotification.Status.PENDING, "available_at": now})
+    # --- Expo push notifications (non-blocking, post-commit) ---
+    try:
+        send_expo_push_notifications(episode, event)
+    except Exception:
+        logger.exception("Expo push notification error (non-fatal)")
 
 
 def close_episode(episode, status, *, at=None, reading=None):
