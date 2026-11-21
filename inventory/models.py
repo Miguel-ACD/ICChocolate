@@ -343,3 +343,14 @@ class AlertNotification(models.Model):
             models.UniqueConstraint(fields=["episode", "user", "event", "channel"], name="unique_alert_notification_event"),
         ]
         ordering = ["-created_at", "-pk"]
+
+
+class ExpoPushToken(models.Model):
+    """Expo push-notification token associated with a user."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="expo_tokens")
+    token = models.CharField(max_length=255, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.username} – {self.token[:12]}…"

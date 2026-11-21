@@ -18,8 +18,11 @@ INSTALLED_APPS = [
     "django.contrib.admin", "django.contrib.auth", "django.contrib.contenttypes",
     "django.contrib.sessions", "django.contrib.messages", "django.contrib.staticfiles",
     "inventory",
+    "rest_framework",
+    "corsheaders",
 ]
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -75,10 +78,30 @@ LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "login"
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
-X_FRAME_OPTIONS = "DENY"
+X_FRAME_OPTIONS = "SAMEORIGIN"
 ALERT_SMTP_HOST = os.environ.get("ALERT_SMTP_HOST", "")
 ALERT_SMTP_PORT = int(os.environ.get("ALERT_SMTP_PORT", "587"))
 ALERT_SMTP_STARTTLS = os.environ.get("ALERT_SMTP_STARTTLS", "1") == "1"
 ALERT_SMTP_USERNAME = os.environ.get("ALERT_SMTP_USERNAME", "")
 ALERT_SMTP_PASSWORD = os.environ.get("ALERT_SMTP_PASSWORD", "")
 ALERT_SMTP_FROM = os.environ.get("ALERT_SMTP_FROM", ALERT_SMTP_USERNAME)
+
+# --- CORS for React Native / Expo Go ---
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:19006",
+    "http://localhost:8081",
+    "http://192.168.18.126:8081",
+    "http://192.168.18.126:19006",
+]
+
+# --- DRF + JWT ---
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    ),
+}

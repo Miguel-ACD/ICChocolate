@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "ICChocolate",
+    "slug": "icchocolate-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "backgroundColor": "#4a2c2a"
+    },
+    "android": {
+      "package": "com.icchocolate.mobile",
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "VIBRATE"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        { "cameraPermission": "Permitir acceso a la cámara para capturar fotos de documentos." }
+      ],
+      [
+        "expo-location",
+        { "locationWhenInUsePermission": "Permitir acceso a la ubicación para registrar dónde se capturó el documento." }
+      ]
+    ]
+  }
+}
+
